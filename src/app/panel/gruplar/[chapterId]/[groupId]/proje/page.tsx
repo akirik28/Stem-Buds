@@ -2,15 +2,24 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { requireAuthContext } from '@/server/auth/context';
-import { canDeleteMilestone, canManageProject, canViewGroup, type AccessScope } from '@/server/authz/policy';
+import {
+  canDeleteMilestone,
+  canEditWeeklyNarrative,
+  canManageProject,
+  canViewGroup,
+  type AccessScope,
+} from '@/server/authz/policy';
 import { getChapterById } from '@/server/services/chapter-service';
 import { getGroupById } from '@/server/services/group-service';
+import { getUserById } from '@/server/services/user-admin';
 import {
   getProjectByGroupId,
   getProjectJourney,
   listMilestonesByProject,
   type Project,
 } from '@/server/services/project-service';
+import { listWeeklySessionsByGroup } from '@/server/services/weekly-session-service';
+import { pickCurrentSession } from '@/server/domain/session-picker';
 import { Card, CardTitle, EmptyState } from '@/components/ui/card';
 import { StatusPill } from '@/components/ui/status';
 import { projectHealthTones } from '@/components/ui/status';
@@ -41,9 +50,14 @@ export default async function ProjectPage({
   if (!canViewGroup(context.scope, group.id, chapter.id)) redirect('/panel/gruplar');
 
   const canManage = canManageProject(context.scope, group.id, chapter.id);
+  const canEditNarrative = canEditWeeklyNarrative(context.scope, group.id, chapter.id);
   const project = context.academicYearId
     ? await getProjectByGroupId(group.id, context.academicYearId)
     : null;
+
+  const sessions = await listWeeklySessionsByGroup(group.id);
+  const currentSession = pickCurrentSession(sessions, new Date());
+  const mentor = group.mentorUserId ? await getUserById(group.mentorUserId) : null;
 
   return (
     <div className="space-y-6">
@@ -54,9 +68,29 @@ export default async function ProjectPage({
         >
           ← {group.name}
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold text-navy-900">
-          {project ? project.name : `${group.name} — Proje`}
-        </h1>
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold text-navy-900">
+            {project ? project.name : `${group.name} — Proje`}
+          </h1>
+          {currentSession ? (
+            <Link
+              href={`/panel/gruplar/${chapter.id}/${group.id}/oturumlar/${currentSession.id}`}
+              className={
+                canEditNarrative
+                  ? 'inline-flex min-h-9 items-center rounded-full bg-navy-800 px-3.5 text-sm font-medium text-white hover:bg-navy-700'
+                  : 'text-sm text-navy-500 hover:text-navy-700'
+              }
+            >
+              {canEditNarrative
+                ? `${currentSession.weekNumber}. haftanın ilerlemesini gir →`
+                : `${currentSession.weekNumber}. hafta oturumuna git →`}
+            </Link>
+          ) : null}
+        </div>
+        <p className="mt-1 text-sm text-navy-500">
+          {chapter.name} · {group.name}
+          {mentor ? ` · Mentor: ${mentor.fullName}` : ''}
+        </p>
       </div>
 
       {!project ? (
@@ -172,14 +206,23 @@ async function ProjectContent({
             Henüz tamamlanmış bir haftalık kayıt veya milestone bulunmuyor.
           </p>
         ) : (
-          <ol className="mt-3 space-y-3 border-l-2 border-navy-100 pl-4">
+          <ol className="mt-3 space-y-4 border-l-2 border-navy-100 pl-4">
             {journey.map((entry, index) => (
               <li key={index}>
-                <p className="text-xs font-medium uppercase tracking-wide text-navy-400">
-                  {entry.type === 'session' ? `${entry.weekNumber}. Hafta` : 'Milestone'} ·{' '}
-                  {formatShortDateTr(entry.date)}
+                <p className="text-xs text-navy-400">
+                  <span className="font-medium uppercase tracking-wide">
+                    {entry.type === 'session' ? `${entry.weekNumber}. Hafta` : 'Milestone'} ·{' '}
+                    {formatShortDateTr(entry.date)}
+                  </span>
+                  {entry.type === 'session' && entry.authorName ? ` · ${entry.authorName}` : ''}
                 </p>
                 <p className="text-sm text-navy-800">{entry.label}</p>
+                {entry.type === 'session' && entry.problem ? (
+                  <p className="mt-1 text-sm text-amber-700">🚧 {entry.problem}</p>
+                ) : null}
+                {entry.type === 'session' && entry.nextStep ? (
+                  <p className="mt-1 text-sm text-navy-500">Sıradaki adım: {entry.nextStep}</p>
+                ) : null}
               </li>
             ))}
           </ol>

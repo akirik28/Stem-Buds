@@ -8,6 +8,7 @@ import { listGroupsByChapter } from '@/server/services/group-service';
 import { Card, CardTitle, EmptyState } from '@/components/ui/card';
 import { messages } from '@/lib/i18n/tr';
 import { CreateGroupForm } from './create-group-form';
+import { ChapterLifecycleControls } from '../chapter-lifecycle-controls';
 
 export const metadata: Metadata = {
   title: 'Chapter Grupları',
@@ -39,12 +40,21 @@ export default async function ChapterGroupsPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/panel/gruplar" className="text-sm text-navy-500 hover:text-navy-700">
-          ← Gruplar
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold text-navy-900">{chapter.name}</h1>
-        <p className="text-sm text-navy-500">{chapter.code}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Link href="/panel/gruplar" className="text-sm text-navy-500 hover:text-navy-700">
+            ← Gruplar
+          </Link>
+          <h1 className="mt-1 text-2xl font-semibold text-navy-900">{chapter.name}</h1>
+          <p className="text-sm text-navy-500">{chapter.code}</p>
+        </div>
+        {canManage ? (
+          <ChapterLifecycleControls
+            chapterId={chapter.id}
+            isActive={chapter.isActive}
+            isEmpty={groups.length === 0}
+          />
+        ) : null}
       </div>
 
       {canManage ? (

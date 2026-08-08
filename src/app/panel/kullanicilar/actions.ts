@@ -7,6 +7,7 @@ import {
   changeUserRole,
   createUser,
   deactivateUser,
+  deleteUser,
   reactivateUser,
   resetTemporaryPassword,
   setAdvisorProgramScopes,
@@ -102,6 +103,19 @@ export async function changeRoleAction(targetUserId: string, newRole: UserRole):
     });
     revalidatePath('/panel/kullanicilar');
     return { success: 'Rol güncellendi.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function deleteUserAction(targetUserId: string): Promise<ActionState> {
+  const context = await requireAuthContext();
+  assertPermission(canManageAccounts(context.scope));
+
+  try {
+    await deleteUser({ targetUserId, actor: { id: context.user.id, name: context.user.fullName } });
+    revalidatePath('/panel/kullanicilar');
+    return { success: 'Kullanıcı silindi.' };
   } catch (error) {
     return { error: toUserMessage(error) };
   }

@@ -1,7 +1,7 @@
 import { desc, eq } from 'drizzle-orm';
 import { getDb } from '@/server/db';
-import { academicYears } from '@/server/db/schema';
-import { conflict, validationError } from '@/server/errors';
+import { academicYears, chapterMemberships, groups } from '@/server/db/schema';
+import { conflict, notFound, validationError } from '@/server/errors';
 import { AUDIT_ACTIONS, recordAudit } from './audit';
 
 export type AcademicYear = typeof academicYears.$inferSelect;
@@ -115,6 +115,51 @@ export async function activateAcademicYear(
         targetId: target.id,
         targetLabel: target.label,
         after: { label: target.label },
+      },
+      tx,
+    );
+  });
+}
+
+/**
+ * Hard-deletes an academic year — safe only when nothing was ever recorded
+ * against it (no chapter memberships, no groups, and therefore nothing
+ * downstream of those either). A year with real history is never
+ * destructible this way; it stays preserved, simply inactive, once a later
+ * year is activated.
+ */
+export async function deleteAcademicYear(input: {
+  id: string;
+  actor: { id: string | null; name: string };
+}): Promise<void> {
+  await getDb().transaction(async (tx) => {
+    const [target] = await tx.select().from(academicYears).where(eq(academicYears.id, input.id)).limit(1);
+    if (!target) throw notFound('Akademik yıl bulunamadı.');
+    if (target.isActive) {
+      throw validationError('Aktif akademik yıl silinemez. Önce başka bir yılı aktifleştirin.');
+    }
+
+    const [membership] = await tx
+      .select({ id: chapterMemberships.id })
+      .from(chapterMemberships)
+      .where(eq(chapterMemberships.academicYearId, input.id))
+      .limit(1);
+    const [group] = await tx.select({ id: groups.id }).from(groups).where(eq(groups.academicYearId, input.id)).limit(1);
+    if (membership || group) {
+      throw validationError('Bu akademik yıla ait kayıtlar bulunuyor; geçmişi korumak için silinemez.');
+    }
+
+    await tx.delete(academicYears).where(eq(academicYears.id, input.id));
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.academicYearDeleted,
+        targetType: 'academic_year',
+        targetId: target.id,
+        targetLabel: target.label,
+        before: { label: target.label },
       },
       tx,
     );

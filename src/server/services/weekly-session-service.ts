@@ -2,10 +2,13 @@ import { and, eq, gte, lt } from 'drizzle-orm';
 import { getDb, type Database } from '@/server/db';
 import {
   academicYears,
+  attendanceRecords,
   groups,
+  homeworkAssignments,
   programHolidays,
   programSettings,
   weeklySessions,
+  weeklyWorkLogs,
 } from '@/server/db/schema';
 import { notFound, validationError } from '@/server/errors';
 import { zonedTimeToUtc } from '@/lib/timezone';
@@ -278,6 +281,143 @@ export async function declareProgramHoliday(input: DeclareHolidayInput): Promise
     );
 
     return { sessionsUpdated };
+  });
+}
+
+/**
+ * True once anything meaningful has actually been entered for a session.
+ *
+ * `weekly_work_logs` is not itself the signal — `getOrCreateWorkLog` (via
+ * `getMissingRequirements`) creates that row lazily the moment ANYONE so
+ * much as *opens* the session page, long before any real content exists.
+ * Every field on it must still be checked individually, plus the sibling
+ * tables that record real entries (attendance, homework).
+ */
+export async function weeklySessionHasHistory(
+  weeklySessionId: string,
+  db: Database = getDb(),
+): Promise<boolean> {
+  const [workLog] = await db
+    .select({
+      whatWeDid: weeklyWorkLogs.whatWeDid,
+      outputs: weeklyWorkLogs.outputs,
+      problems: weeklyWorkLogs.problems,
+      nextWeekGoal: weeklyWorkLogs.nextWeekGoal,
+      projectHealth: weeklyWorkLogs.projectHealth,
+      attendanceFinalizedAt: weeklyWorkLogs.attendanceFinalizedAt,
+      previousHomeworkFinalizedAt: weeklyWorkLogs.previousHomeworkFinalizedAt,
+      mentorApprovedAt: weeklyWorkLogs.mentorApprovedAt,
+    })
+    .from(weeklyWorkLogs)
+    .where(eq(weeklyWorkLogs.weeklySessionId, weeklySessionId))
+    .limit(1);
+
+  if (workLog) {
+    const touched = Object.values(workLog).some((value) => value !== null);
+    if (touched) return true;
+  }
+
+  const [attendance] = await db
+    .select({ id: attendanceRecords.id })
+    .from(attendanceRecords)
+    .where(eq(attendanceRecords.weeklySessionId, weeklySessionId))
+    .limit(1);
+  if (attendance) return true;
+
+  const [homework] = await db
+    .select({ id: homeworkAssignments.id })
+    .from(homeworkAssignments)
+    .where(eq(homeworkAssignments.weeklySessionId, weeklySessionId))
+    .limit(1);
+  return homework !== undefined;
+}
+
+/**
+ * Hard-deletes a single, never-touched future session — the "accidentally
+ * generated one extra week" case. Safe only when nothing meaningful was
+ * ever recorded for it (see `weeklySessionHasHistory`) — an empty work-log
+ * row created merely by viewing the page does not count as history.
+ */
+export async function deleteWeeklySession(input: {
+  weeklySessionId: string;
+  actor: { id: string | null; name: string };
+}): Promise<void> {
+  await getDb().transaction(async (tx) => {
+    const [session] = await tx
+      .select()
+      .from(weeklySessions)
+      .where(eq(weeklySessions.id, input.weeklySessionId))
+      .limit(1);
+    if (!session) throw notFound('Oturum bulunamadı.');
+
+    if (await weeklySessionHasHistory(input.weeklySessionId, tx)) {
+      throw validationError('Bu oturuma ait kayıt girilmiş; silmek yerine iptal edin.');
+    }
+
+    await tx.delete(weeklySessions).where(eq(weeklySessions.id, input.weeklySessionId));
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.weeklySessionDeleted,
+        targetType: 'weekly_session',
+        targetId: session.id,
+        before: { weekNumber: session.weekNumber, groupId: session.groupId },
+      },
+      tx,
+    );
+  });
+}
+
+/**
+ * Cancels a session — preserves the row and whatever was already recorded,
+ * just marks it `cancelled` instead of destroying it. This is the correct
+ * action once a session has any history; a completed one can never be
+ * cancelled this way, matching "completed session history is preserved".
+ */
+export async function cancelWeeklySession(input: {
+  weeklySessionId: string;
+  reason?: string | null;
+  actor: { id: string | null; name: string };
+}): Promise<WeeklySession> {
+  return getDb().transaction(async (tx) => {
+    const [session] = await tx
+      .select()
+      .from(weeklySessions)
+      .where(eq(weeklySessions.id, input.weeklySessionId))
+      .limit(1);
+    if (!session) throw notFound('Oturum bulunamadı.');
+
+    const [workLog] = await tx
+      .select({ completedAt: weeklyWorkLogs.completedAt })
+      .from(weeklyWorkLogs)
+      .where(eq(weeklyWorkLogs.weeklySessionId, input.weeklySessionId))
+      .limit(1);
+    if (workLog?.completedAt) {
+      throw validationError('Tamamlanmış bir oturum iptal edilemez.');
+    }
+
+    const [updated] = await tx
+      .update(weeklySessions)
+      .set({ state: 'cancelled', cancellationReason: input.reason?.trim() || null, updatedAt: new Date() })
+      .where(eq(weeklySessions.id, input.weeklySessionId))
+      .returning();
+    if (!updated) throw notFound('Oturum bulunamadı.');
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.weeklySessionCancelled,
+        targetType: 'weekly_session',
+        targetId: updated.id,
+        after: { reason: input.reason ?? null },
+      },
+      tx,
+    );
+
+    return updated;
   });
 }
 

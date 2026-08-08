@@ -4,12 +4,15 @@ import {
   canAccessComplaint,
   canApproveWeeklySession,
   canAssignRole,
+  canDeleteHomeworkAssignment,
+  canDeleteMilestone,
   canEditWeeklyNarrative,
   canExportChapter,
   canExportOrganization,
   canFinalizeWeeklyRecord,
   canManageAccounts,
   canManageChapter,
+  canManageProject,
   canSeeComplaintReporter,
   canViewChapter,
   canViewGroup,
@@ -36,6 +39,7 @@ function scope(overrides: Partial<AccessScope> & Pick<AccessScope, 'userId' | 'r
 }
 
 const executive = scope({ userId: 'exec-1', role: 'regional_director' });
+const viceDirector = scope({ userId: 'exec-2', role: 'vice_president' });
 
 const chapterHeadA = scope({
   userId: 'head-a',
@@ -107,6 +111,12 @@ describe('weekly record authority', () => {
     expect(canApproveWeeklySession(teamLeaderA1, GROUP_A1, CHAPTER_A)).toBe(false);
   });
 
+  it('never lets a team leader draft a different group’s narrative, even by ID', () => {
+    // teamLeaderA1 is Team Leader of GROUP_A1 only — GROUP_A2 must stay closed
+    // to them even though it is in the same chapter.
+    expect(canEditWeeklyNarrative(teamLeaderA1, GROUP_A2, CHAPTER_A)).toBe(false);
+  });
+
   it('does not let a plain student edit anything', () => {
     expect(canEditWeeklyNarrative(studentA1, GROUP_A1, CHAPTER_A)).toBe(false);
     expect(canFinalizeWeeklyRecord(studentA1, GROUP_A1, CHAPTER_A)).toBe(false);
@@ -123,6 +133,50 @@ describe('weekly record authority', () => {
   });
 });
 
+describe('project authorization', () => {
+  it('lets only the group’s own mentor (or Executive Management) manage the project entity', () => {
+    expect(canManageProject(mentorA1, GROUP_A1, CHAPTER_A)).toBe(true);
+    expect(canManageProject(mentorA1, GROUP_A2, CHAPTER_A)).toBe(false);
+    expect(canManageProject(executive, GROUP_A2, CHAPTER_A)).toBe(true);
+  });
+
+  it('gives Chapter Head oversight (view) but not project-editing rights — narrower than the weekly-record boundary', () => {
+    // Unlike weekly records, where the spec explicitly grants a correction
+    // right, the Project entity itself stays Mentor/management-only; Chapter
+    // Head still sees it via canViewGroup, just cannot edit it.
+    expect(canViewGroup(chapterHeadA, GROUP_A2, CHAPTER_A)).toBe(true);
+    expect(canManageProject(chapterHeadA, GROUP_A2, CHAPTER_A)).toBe(false);
+  });
+
+  it('never lets a student — Team Leader or not — manage the project entity itself', () => {
+    // Section 8 of the master spec gives a Team Leader draft rights over the
+    // weekly narrative only; the Project's own fields (status, milestones,
+    // outcome) stay Mentor/management-only, same as official homework status.
+    expect(canManageProject(studentA1, GROUP_A1, CHAPTER_A)).toBe(false);
+    expect(canManageProject(teamLeaderA1, GROUP_A1, CHAPTER_A)).toBe(false);
+  });
+
+  it('lets only the record’s creator delete their own milestone/homework, inside their own scope', () => {
+    expect(
+      canDeleteMilestone(mentorA1, { groupId: GROUP_A1, chapterId: CHAPTER_A, createdByUserId: 'mentor-a1' }),
+    ).toBe(true);
+    // Someone else's creation, even inside a group this mentor legitimately manages.
+    expect(
+      canDeleteMilestone(mentorA1, { groupId: GROUP_A1, chapterId: CHAPTER_A, createdByUserId: 'someone-else' }),
+    ).toBe(false);
+    // A Chapter Head's correction rights do not extend to deleting a Mentor's creation.
+    expect(
+      canDeleteMilestone(chapterHeadA, { groupId: GROUP_A1, chapterId: CHAPTER_A, createdByUserId: 'mentor-a1' }),
+    ).toBe(false);
+    expect(
+      canDeleteHomeworkAssignment(mentorA1, { groupId: GROUP_A1, chapterId: CHAPTER_A, createdByUserId: 'mentor-a1' }),
+    ).toBe(true);
+    expect(
+      canDeleteHomeworkAssignment(executive, { groupId: GROUP_A1, chapterId: CHAPTER_A, createdByUserId: 'mentor-a1' }),
+    ).toBe(true);
+  });
+});
+
 describe('account administration', () => {
   it('is executive-only', () => {
     expect(canManageAccounts(executive)).toBe(true);
@@ -134,6 +188,21 @@ describe('account administration', () => {
     expect(canAssignRole(chapterHeadA, 'regional_director')).toBe(false);
     expect(canAssignRole(chapterHeadA, 'mentor')).toBe(false);
     expect(canAssignRole(executive, 'vice_president')).toBe(true);
+  });
+
+  it('gives Vice President the exact same organization-wide authority as Regional Director — title differs, permissions never do', () => {
+    expect(canManageAccounts(viceDirector)).toBe(true);
+    expect(canViewChapter(viceDirector, CHAPTER_A)).toBe(true);
+    expect(canViewChapter(viceDirector, CHAPTER_B)).toBe(true);
+    expect(canManageChapter(viceDirector, CHAPTER_B)).toBe(true);
+    expect(canFinalizeWeeklyRecord(viceDirector, GROUP_A2, CHAPTER_A)).toBe(true);
+    expect(canManageProject(viceDirector, GROUP_A2, CHAPTER_A)).toBe(true);
+    expect(canAssignRole(viceDirector, 'regional_director')).toBe(true);
+    expect(
+      canDeleteMilestone(viceDirector, { groupId: GROUP_A1, chapterId: CHAPTER_A, createdByUserId: 'mentor-a1' }),
+    ).toBe(true);
+    expect(canViewManagementFeed(viceDirector)).toBe(true);
+    expect(canExportOrganization(viceDirector)).toBe(true);
   });
 });
 

@@ -3,11 +3,20 @@
 import { revalidatePath } from 'next/cache';
 import { requireAuthContext, assertPermission } from '@/server/auth/context';
 import { canManageChapter, isExecutive } from '@/server/authz/policy';
-import { createChapter, getChapterById } from '@/server/services/chapter-service';
 import {
+  archiveChapter,
+  createChapter,
+  deleteChapter,
+  getChapterById,
+  reactivateChapter,
+} from '@/server/services/chapter-service';
+import {
+  archiveGroup,
   assignGroupMentor,
   createGroup,
   addGroupMember,
+  deleteGroup,
+  reactivateGroup,
   removeGroupMember,
   setTeamLeader,
 } from '@/server/services/group-service';
@@ -144,6 +153,91 @@ export async function assignGroupMentorAction(
     });
     revalidatePath(`/panel/gruplar/${chapterId}/${groupId}`);
     return { success: 'Mentor atandı.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function archiveChapterAction(chapterId: string): Promise<ActionState> {
+  const context = await requireAuthContext();
+  assertPermission(canManageChapter(context.scope, chapterId));
+
+  try {
+    await archiveChapter({ id: chapterId, actor: { id: context.user.id, name: context.user.fullName } });
+    revalidatePath('/panel/gruplar');
+    revalidatePath(`/panel/gruplar/${chapterId}`);
+    return { success: 'Chapter pasifleştirildi.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function reactivateChapterAction(chapterId: string): Promise<ActionState> {
+  const context = await requireAuthContext();
+  assertPermission(canManageChapter(context.scope, chapterId));
+
+  try {
+    await reactivateChapter({ id: chapterId, actor: { id: context.user.id, name: context.user.fullName } });
+    revalidatePath('/panel/gruplar');
+    revalidatePath(`/panel/gruplar/${chapterId}`);
+    return { success: 'Chapter yeniden aktifleştirildi.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function deleteChapterAction(chapterId: string): Promise<ActionState> {
+  const context = await requireAuthContext();
+  assertPermission(canManageChapter(context.scope, chapterId));
+
+  try {
+    await deleteChapter({ id: chapterId, actor: { id: context.user.id, name: context.user.fullName } });
+    revalidatePath('/panel/gruplar');
+    return { success: 'Chapter silindi.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function archiveGroupAction(chapterId: string, groupId: string): Promise<ActionState> {
+  const context = await requireAuthContext();
+  const chapter = await getChapterById(chapterId);
+  assertPermission(!!chapter && canManageChapter(context.scope, chapter.id));
+
+  try {
+    await archiveGroup({ id: groupId, actor: { id: context.user.id, name: context.user.fullName } });
+    revalidatePath(`/panel/gruplar/${chapterId}`);
+    revalidatePath(`/panel/gruplar/${chapterId}/${groupId}`);
+    return { success: 'Grup pasifleştirildi.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function reactivateGroupAction(chapterId: string, groupId: string): Promise<ActionState> {
+  const context = await requireAuthContext();
+  const chapter = await getChapterById(chapterId);
+  assertPermission(!!chapter && canManageChapter(context.scope, chapter.id));
+
+  try {
+    await reactivateGroup({ id: groupId, actor: { id: context.user.id, name: context.user.fullName } });
+    revalidatePath(`/panel/gruplar/${chapterId}`);
+    revalidatePath(`/panel/gruplar/${chapterId}/${groupId}`);
+    return { success: 'Grup yeniden aktifleştirildi.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function deleteGroupAction(chapterId: string, groupId: string): Promise<ActionState> {
+  const context = await requireAuthContext();
+  const chapter = await getChapterById(chapterId);
+  assertPermission(!!chapter && canManageChapter(context.scope, chapter.id));
+
+  try {
+    await deleteGroup({ id: groupId, actor: { id: context.user.id, name: context.user.fullName } });
+    revalidatePath(`/panel/gruplar/${chapterId}`);
+    return { success: 'Grup silindi.' };
   } catch (error) {
     return { error: toUserMessage(error) };
   }

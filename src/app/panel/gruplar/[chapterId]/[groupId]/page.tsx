@@ -15,6 +15,7 @@ import { AssignMentorForm } from './assign-mentor-form';
 import { getMentorCardState } from './mentor-card-state';
 import { GenerateSessionsButton } from './oturumlar/generate-sessions-button';
 import { MemberRow } from './member-row';
+import { GroupLifecycleControls } from './group-lifecycle-controls';
 
 export const metadata: Metadata = {
   title: 'Grup Üyeleri',
@@ -63,11 +64,21 @@ export default async function GroupDetailPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href={`/panel/gruplar/${chapter.id}`} className="text-sm text-navy-500 hover:text-navy-700">
-          ← {chapter.name}
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold text-navy-900">{group.name}</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Link href={`/panel/gruplar/${chapter.id}`} className="text-sm text-navy-500 hover:text-navy-700">
+            ← {chapter.name}
+          </Link>
+          <h1 className="mt-1 text-2xl font-semibold text-navy-900">{group.name}</h1>
+        </div>
+        {canManage ? (
+          <GroupLifecycleControls
+            chapterId={chapter.id}
+            groupId={group.id}
+            isActive={group.isActive}
+            isEmpty={members.length === 0 && sessions.length === 0}
+          />
+        ) : null}
       </div>
 
       <Card>

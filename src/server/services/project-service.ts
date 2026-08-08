@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { getDb, type Database } from '@/server/db';
-import { groups, milestones, projects, weeklySessions, weeklyWorkLogs } from '@/server/db/schema';
+import { groups, milestones, projects, users, weeklySessions, weeklyWorkLogs } from '@/server/db/schema';
 import { conflict, notFound, validationError } from '@/server/errors';
 import { buildProjectJourney, type JourneyEntry } from '@/server/domain/project-journey';
 import { AUDIT_ACTIONS, recordAudit } from './audit';
@@ -360,10 +360,14 @@ export async function getProjectJourney(groupId: string, projectId: string): Pro
       scheduledStartAt: weeklySessions.scheduledStartAt,
       whatWeDid: weeklyWorkLogs.whatWeDid,
       outputs: weeklyWorkLogs.outputs,
+      problems: weeklyWorkLogs.problems,
+      nextWeekGoal: weeklyWorkLogs.nextWeekGoal,
       completedAt: weeklyWorkLogs.completedAt,
+      authorName: users.fullName,
     })
     .from(weeklySessions)
     .innerJoin(weeklyWorkLogs, eq(weeklyWorkLogs.weeklySessionId, weeklySessions.id))
+    .leftJoin(users, eq(users.id, weeklyWorkLogs.draftAuthorId))
     .where(eq(weeklySessions.groupId, groupId));
 
   const milestoneRows = await db

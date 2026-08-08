@@ -11,7 +11,7 @@ import {
 } from '@/server/authz/policy';
 import { getChapterById } from '@/server/services/chapter-service';
 import { getGroupById, listGroupMembers } from '@/server/services/group-service';
-import { getWeeklySessionById } from '@/server/services/weekly-session-service';
+import { getWeeklySessionById, weeklySessionHasHistory } from '@/server/services/weekly-session-service';
 import {
   getHomeworkAssignmentBySessionId,
   getMissingRequirements,
@@ -30,6 +30,7 @@ import { HomeworkForm } from './homework-form';
 import { DeleteHomeworkButton } from './delete-homework-button';
 import { PreviousHomeworkForm } from './previous-homework-form';
 import { ApproveButton } from './approve-button';
+import { SessionLifecycleControls } from './session-lifecycle-controls';
 
 export const metadata: Metadata = {
   title: 'Haftalık Çalışma Kaydı',
@@ -72,33 +73,46 @@ export default async function WeeklySessionPage({
   const previousStatusByMembership = new Map(previousStatuses.map((s) => [s.groupMembershipId, s]));
   const isComplete = workLog?.completedAt !== null && workLog?.completedAt !== undefined;
 
+  const canDeleteSession =
+    canFinalize && session.state === 'scheduled' && !(await weeklySessionHasHistory(session.id));
+  const canCancelSession = canFinalize && session.state === 'scheduled' && !isComplete;
+
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href={`/panel/gruplar/${chapter.id}/${group.id}`}
-          className="text-sm text-navy-500 hover:text-navy-700"
-        >
-          ← {group.name}
-        </Link>
-        <div className="mt-1 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold text-navy-900">{group.name} — {session.weekNumber}. Hafta</h1>
-          {isComplete ? (
-            <StatusPill tone="ok" icon="✅">
-              Tamamlandı
-            </StatusPill>
-          ) : (
-            <StatusPill tone="warn" icon="⏳">
-              Devam ediyor
-            </StatusPill>
-          )}
-          {session.state !== 'scheduled' ? (
-            <StatusPill tone="neutral">{weeklySessionStateLabels[session.state]}</StatusPill>
-          ) : null}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Link
+            href={`/panel/gruplar/${chapter.id}/${group.id}`}
+            className="text-sm text-navy-500 hover:text-navy-700"
+          >
+            ← {group.name}
+          </Link>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold text-navy-900">{group.name} — {session.weekNumber}. Hafta</h1>
+            {isComplete ? (
+              <StatusPill tone="ok" icon="✅">
+                Tamamlandı
+              </StatusPill>
+            ) : (
+              <StatusPill tone="warn" icon="⏳">
+                Devam ediyor
+              </StatusPill>
+            )}
+            {session.state !== 'scheduled' ? (
+              <StatusPill tone="neutral">{weeklySessionStateLabels[session.state]}</StatusPill>
+            ) : null}
+          </div>
+          <p className="mt-1 text-sm text-navy-500">
+            {formatDateTr(session.scheduledStartAt)} · {formatTimeRangeTr(session.scheduledStartAt, session.scheduledEndAt)}
+          </p>
         </div>
-        <p className="mt-1 text-sm text-navy-500">
-          {formatDateTr(session.scheduledStartAt)} · {formatTimeRangeTr(session.scheduledStartAt, session.scheduledEndAt)}
-        </p>
+        <SessionLifecycleControls
+          chapterId={chapter.id}
+          groupId={group.id}
+          sessionId={session.id}
+          canDelete={canDeleteSession}
+          canCancel={canCancelSession}
+        />
       </div>
 
       {!isComplete && missing.length > 0 ? (

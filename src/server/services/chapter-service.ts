@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { getDb } from '@/server/db';
-import { chapterMemberships, chapters, users } from '@/server/db/schema';
+import { chapterMemberships, chapters, groups, users } from '@/server/db/schema';
 import { conflict, notFound, validationError } from '@/server/errors';
 import { AUDIT_ACTIONS, recordAudit } from './audit';
 
@@ -207,4 +207,108 @@ export async function listChapterMembers(
     .orderBy(users.fullName);
 
   return rows.map((row) => ({ ...row, role: row.role as 'mentor' | 'student' }));
+}
+
+/**
+ * Archives a chapter (`isActive = false`) rather than destroying it —
+ * appropriate once it has any real history (a group, a member). It stays
+ * fully visible in historical records; only new activity is discouraged.
+ */
+export async function archiveChapter(input: {
+  id: string;
+  actor: { id: string | null; name: string };
+}): Promise<Chapter> {
+  return getDb().transaction(async (tx) => {
+    const [updated] = await tx
+      .update(chapters)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(chapters.id, input.id))
+      .returning();
+    if (!updated) throw notFound('Chapter bulunamadı.');
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.chapterArchived,
+        targetType: 'chapter',
+        targetId: updated.id,
+        targetLabel: updated.code,
+        chapterId: updated.id,
+      },
+      tx,
+    );
+    return updated;
+  });
+}
+
+export async function reactivateChapter(input: {
+  id: string;
+  actor: { id: string | null; name: string };
+}): Promise<Chapter> {
+  return getDb().transaction(async (tx) => {
+    const [updated] = await tx
+      .update(chapters)
+      .set({ isActive: true, updatedAt: new Date() })
+      .where(eq(chapters.id, input.id))
+      .returning();
+    if (!updated) throw notFound('Chapter bulunamadı.');
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.chapterReactivated,
+        targetType: 'chapter',
+        targetId: updated.id,
+        targetLabel: updated.code,
+        chapterId: updated.id,
+      },
+      tx,
+    );
+    return updated;
+  });
+}
+
+/**
+ * Hard-deletes a chapter — safe only when it was never actually used: no
+ * groups and no member assigned to it yet. A chapter with any real history
+ * is never destructible this way; `archiveChapter` is the correct action
+ * for that case. The database's own foreign-key constraints
+ * (`groups`/`chapter_memberships` both `RESTRICT` on `chapter_id`) back this
+ * check up regardless of what the application layer does or doesn't verify.
+ */
+export async function deleteChapter(input: {
+  id: string;
+  actor: { id: string | null; name: string };
+}): Promise<void> {
+  await getDb().transaction(async (tx) => {
+    const [target] = await tx.select().from(chapters).where(eq(chapters.id, input.id)).limit(1);
+    if (!target) throw notFound('Chapter bulunamadı.');
+
+    const [group] = await tx.select({ id: groups.id }).from(groups).where(eq(groups.chapterId, input.id)).limit(1);
+    const [membership] = await tx
+      .select({ id: chapterMemberships.id })
+      .from(chapterMemberships)
+      .where(eq(chapterMemberships.chapterId, input.id))
+      .limit(1);
+    if (group || membership) {
+      throw validationError('Bu chapter’a ait grup veya üyelik kayıtları var; silmek yerine pasifleştirin.');
+    }
+
+    await tx.delete(chapters).where(eq(chapters.id, input.id));
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.chapterDeleted,
+        targetType: 'chapter',
+        targetId: target.id,
+        targetLabel: target.code,
+        before: { code: target.code, name: target.name },
+      },
+      tx,
+    );
+  });
 }

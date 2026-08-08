@@ -10,7 +10,11 @@ import {
 } from '@/server/authz/policy';
 import { getChapterById } from '@/server/services/chapter-service';
 import { getGroupById } from '@/server/services/group-service';
-import { generateWeeklySessionsForGroup } from '@/server/services/weekly-session-service';
+import {
+  cancelWeeklySession,
+  deleteWeeklySession,
+  generateWeeklySessionsForGroup,
+} from '@/server/services/weekly-session-service';
 import {
   approveWeeklySession,
   deleteHomeworkAssignment,
@@ -137,6 +141,40 @@ export async function setHomeworkAction(
     });
     revalidateSession(chapterId, groupId, sessionId);
     return { success: 'Ödev kaydedildi.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function deleteSessionAction(
+  chapterId: string,
+  groupId: string,
+  sessionId: string,
+): Promise<ActionState> {
+  const { context, chapter } = await loadContextFor(chapterId, groupId);
+  assertPermission(canFinalizeWeeklyRecord(context.scope, groupId, chapter.id));
+
+  try {
+    await deleteWeeklySession({ weeklySessionId: sessionId, actor: { id: context.user.id, name: context.user.fullName } });
+    revalidatePath(`/panel/gruplar/${chapterId}/${groupId}`);
+    return { success: 'Oturum silindi.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function cancelSessionAction(
+  chapterId: string,
+  groupId: string,
+  sessionId: string,
+): Promise<ActionState> {
+  const { context, chapter } = await loadContextFor(chapterId, groupId);
+  assertPermission(canFinalizeWeeklyRecord(context.scope, groupId, chapter.id));
+
+  try {
+    await cancelWeeklySession({ weeklySessionId: sessionId, actor: { id: context.user.id, name: context.user.fullName } });
+    revalidateSession(chapterId, groupId, sessionId);
+    return { success: 'Oturum iptal edildi.' };
   } catch (error) {
     return { error: toUserMessage(error) };
   }

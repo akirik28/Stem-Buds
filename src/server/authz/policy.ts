@@ -141,8 +141,18 @@ export function canApproveWeeklySession(
  * oversight/above. A Team Leader may draft the weekly narrative but has no
  * project-editing right of their own per the master spec.
  */
-export function canManageProject(scope: AccessScope, groupId: string, chapterId: string): boolean {
-  return canFinalizeWeeklyRecord(scope, groupId, chapterId);
+/**
+ * Unlike weekly records (where the master spec explicitly grants Chapter
+ * Head a correction right), Chapter Head's role for the Project entity
+ * itself is Chapter-level oversight/viewing only — `canViewGroup` already
+ * covers that. Only the group's own Mentor edits Project fields directly;
+ * Executive Management keeps its usual organization-wide override. This is
+ * a deliberately narrower boundary than `canFinalizeWeeklyRecord` — do not
+ * widen it to Chapter Head without an explicit spec change.
+ */
+export function canManageProject(scope: AccessScope, groupId: string, _chapterId: string): boolean {
+  if (isExecutive(scope.role)) return true;
+  return isMentor(scope.role) && scope.mentorGroupIds.includes(groupId);
 }
 
 /**

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
+import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
 import { Select } from '@/components/ui/form';
 import { StatusPill } from '@/components/ui/status';
 import { formatRelativeTr } from '@/lib/format';
@@ -11,6 +12,7 @@ import type { UserRole } from '@/server/authz/policy';
 import {
   changeRoleAction,
   deactivateUserAction,
+  deleteUserAction,
   reactivateUserAction,
   resetPasswordAction,
   updateAdvisorProgramsAction,
@@ -168,6 +170,14 @@ export function UserRow({
               Yeniden aktifleştir
             </Button>
           )}
+          {!user.lastLoginAt ? (
+            <ConfirmDeleteButton
+              label="Sil"
+              confirmQuestion="Bu hesap kalıcı olarak silinsin mi? Yalnızca hiç kullanılmamış hesaplar silinebilir."
+              disabled={pending}
+              onConfirm={() => run(() => deleteUserAction(user.id))}
+            />
+          ) : null}
         </div>
       </div>
 

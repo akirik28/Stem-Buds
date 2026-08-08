@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { getDb } from '@/server/db';
-import { chapterMemberships, chapters, groupMemberships, groups, users } from '@/server/db/schema';
+import { chapterMemberships, chapters, groupMemberships, groups, users, weeklySessions } from '@/server/db/schema';
 import { conflict, notFound, validationError } from '@/server/errors';
 import { disciplineCodes, type DisciplineKey } from '@/lib/i18n/tr';
 import type { UserRole } from '@/server/authz/policy';
@@ -413,5 +413,107 @@ export async function setTeamLeader(input: {
     );
 
     return updated;
+  });
+}
+
+/** Archives a group (`isActive = false`) — preserves it and all its history. */
+export async function archiveGroup(input: {
+  id: string;
+  actor: { id: string | null; name: string };
+}): Promise<Group> {
+  return getDb().transaction(async (tx) => {
+    const [updated] = await tx
+      .update(groups)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(groups.id, input.id))
+      .returning();
+    if (!updated) throw notFound('Grup bulunamadı.');
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.groupArchived,
+        targetType: 'group',
+        targetId: updated.id,
+        targetLabel: updated.name,
+      },
+      tx,
+    );
+    return updated;
+  });
+}
+
+export async function reactivateGroup(input: {
+  id: string;
+  actor: { id: string | null; name: string };
+}): Promise<Group> {
+  return getDb().transaction(async (tx) => {
+    const [updated] = await tx
+      .update(groups)
+      .set({ isActive: true, updatedAt: new Date() })
+      .where(eq(groups.id, input.id))
+      .returning();
+    if (!updated) throw notFound('Grup bulunamadı.');
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.groupReactivated,
+        targetType: 'group',
+        targetId: updated.id,
+        targetLabel: updated.name,
+      },
+      tx,
+    );
+    return updated;
+  });
+}
+
+/**
+ * Hard-deletes a group — safe only when it was never actually used: no
+ * members (student or mentor) and no weekly sessions generated yet. Unlike
+ * `chapters`, both `group_memberships` and `weekly_sessions` cascade on
+ * `group_id` at the database level, so this application-level check is the
+ * real safety net, not a backstop — a group with any history must be
+ * archived with `archiveGroup` instead, never hard-deleted.
+ */
+export async function deleteGroup(input: {
+  id: string;
+  actor: { id: string | null; name: string };
+}): Promise<void> {
+  await getDb().transaction(async (tx) => {
+    const [target] = await tx.select().from(groups).where(eq(groups.id, input.id)).limit(1);
+    if (!target) throw notFound('Grup bulunamadı.');
+
+    const [membership] = await tx
+      .select({ id: groupMemberships.id })
+      .from(groupMemberships)
+      .where(eq(groupMemberships.groupId, input.id))
+      .limit(1);
+    const [session] = await tx
+      .select({ id: weeklySessions.id })
+      .from(weeklySessions)
+      .where(eq(weeklySessions.groupId, input.id))
+      .limit(1);
+    if (membership || session) {
+      throw validationError('Bu gruba ait üyelik veya oturum kayıtları var; silmek yerine pasifleştirin.');
+    }
+
+    await tx.delete(groups).where(eq(groups.id, input.id));
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.groupDeleted,
+        targetType: 'group',
+        targetId: target.id,
+        targetLabel: target.name,
+        before: { name: target.name },
+      },
+      tx,
+    );
   });
 }
