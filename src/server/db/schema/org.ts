@@ -2,6 +2,7 @@ import { relations } from 'drizzle-orm';
 import {
   boolean,
   date,
+  foreignKey,
   index,
   integer,
   pgTable,
@@ -12,6 +13,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { users } from './auth';
+import { programs } from './programs';
 import { groupRoleEnum, userRoleEnum } from './enums';
 
 /**
@@ -36,11 +38,24 @@ export const academicYears = pgTable(
   ],
 );
 
-/** A school/chapter of the program. */
+/**
+ * A school/chapter, scoped to exactly one program.
+ *
+ * STEM & BUDS runs two programs (Online Ortaokul Programı, BİLSEM Programı)
+ * under one organization. A chapter belongs to one of them — a school that
+ * participates in both gets two chapter rows, one per program — so every
+ * chapter-scoped concept already in the platform (Chapter Head oversight,
+ * groups, weekly sessions, projects, complaints, mentor channels, exports)
+ * is automatically program-isolated with no schema change of its own: it
+ * inherits `programId` transitively through this column.
+ */
 export const chapters = pgTable(
   'chapters',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    programId: uuid('program_id')
+      .notNull()
+      .references(() => programs.id, { onDelete: 'restrict' }),
     /** Short code used throughout the UI, e.g. "UAA". */
     code: varchar('code', { length: 16 }).notNull(),
     name: varchar('name', { length: 160 }).notNull(),
@@ -58,6 +73,12 @@ export const chapters = pgTable(
   (table) => [
     uniqueIndex('chapters_code_unique').on(table.code),
     index('chapters_is_public_idx').on(table.isPublic),
+    index('chapters_program_idx').on(table.programId),
+    // Composite-FK target: lets `groups` (and other program-scoped children)
+    // declare a foreign key on (parentId, programId) instead of just
+    // (parentId), so Postgres itself rejects a row whose programId doesn't
+    // match its parent chapter's — see the `groups` foreign key below.
+    uniqueIndex('chapters_id_program_unique').on(table.id, table.programId),
   ],
 );
 
@@ -94,14 +115,28 @@ export const chapterMemberships = pgTable(
   ],
 );
 
-/** A discipline group such as "Bio 1" or "CS 2" inside a chapter. */
+/**
+ * A discipline group such as "Bio 1" or "CS 2" inside a chapter.
+ *
+ * `programId` is denormalized from the parent chapter (set from it at
+ * creation — see `createGroup` in group-service.ts) so program-filtered
+ * queries never need to join through `chapters` just to scope by program.
+ *
+ * That denormalization is not trusted to application code alone: `chapterId`
+ * is enforced by a composite foreign key against `chapters (id, program_id)`
+ * (declared below) rather than a plain `chapterId -> chapters.id` reference,
+ * so the database itself rejects any row where a group's `programId` doesn't
+ * match its chapter's — a group can never end up in Program A while its
+ * chapter is in Program B, even if a future bug in the service layer tried.
+ */
 export const groups = pgTable(
   'groups',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    chapterId: uuid('chapter_id')
+    programId: uuid('program_id')
       .notNull()
-      .references(() => chapters.id, { onDelete: 'restrict' }),
+      .references(() => programs.id, { onDelete: 'restrict' }),
+    chapterId: uuid('chapter_id').notNull(),
     academicYearId: uuid('academic_year_id')
       .notNull()
       .references(() => academicYears.id, { onDelete: 'restrict' }),
@@ -130,6 +165,15 @@ export const groups = pgTable(
       table.sequence,
     ),
     index('groups_chapter_idx').on(table.chapterId, table.academicYearId),
+    index('groups_program_idx').on(table.programId),
+    // Composite-FK target for `management_alerts.groupId`, mirroring
+    // `chapters_id_program_unique` above.
+    uniqueIndex('groups_id_program_unique').on(table.id, table.programId),
+    foreignKey({
+      name: 'groups_chapter_id_program_id_chapters_fk',
+      columns: [table.chapterId, table.programId],
+      foreignColumns: [chapters.id, chapters.programId],
+    }).onDelete('restrict'),
   ],
 );
 
@@ -169,7 +213,8 @@ export const academicYearsRelations = relations(academicYears, ({ many }) => ({
   chapterMemberships: many(chapterMemberships),
 }));
 
-export const chaptersRelations = relations(chapters, ({ many }) => ({
+export const chaptersRelations = relations(chapters, ({ one, many }) => ({
+  program: one(programs, { fields: [chapters.programId], references: [programs.id] }),
   memberships: many(chapterMemberships),
   groups: many(groups),
 }));
@@ -184,6 +229,7 @@ export const chapterMembershipsRelations = relations(chapterMemberships, ({ one 
 }));
 
 export const groupsRelations = relations(groups, ({ one, many }) => ({
+  program: one(programs, { fields: [groups.programId], references: [programs.id] }),
   chapter: one(chapters, { fields: [groups.chapterId], references: [chapters.id] }),
   academicYear: one(academicYears, {
     fields: [groups.academicYearId],

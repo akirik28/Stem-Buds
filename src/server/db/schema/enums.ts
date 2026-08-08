@@ -110,3 +110,9 @@ export const contactReasonEnum = pgEnum('contact_reason', [
   'information',
   'other',
 ]);
+
+/**
+ * How a program's sessions are delivered. Nullable at the settings level until
+ * an executive configures it — a program's delivery mode is never assumed.
+ */
+export const deliveryModeEnum = pgEnum('program_delivery_mode', ['online', 'in_person', 'hybrid']);

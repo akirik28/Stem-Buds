@@ -1,5 +1,6 @@
 export * from './enums';
 export * from './auth';
+export * from './programs';
 export * from './org';
 export * from './projects';
 export * from './weekly';

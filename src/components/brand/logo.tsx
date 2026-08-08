@@ -5,24 +5,61 @@ import { cn } from '@/lib/utils';
 /**
  * The official STEM & BUDS Türkiye mark.
  *
- * Source: the icon was cropped directly from the organization's official
- * lockup (`public/brand/stem-buds-icon.png`) — nothing here is redrawn or
- * approximated. `next/image` keeps the crop's native aspect ratio (319:420)
- * so it is never stretched or distorted; callers set a height and the width
- * follows automatically.
+ * PLACEHOLDER STATE: the real logo file has not been provided as a filesystem
+ * asset yet (only seen inline in chat, and once as a crop from an Instagram
+ * slide export — neither is treated as the source of truth here per explicit
+ * instruction not to redraw, approximate, or substitute a cropped version).
+ *
+ * This renders a plain, honest monogram — no invented leaf/circuit artwork —
+ * until the real file exists at `public/brand/stem-buds-logo.png`. The moment
+ * that file is added, flip `LOGO_ASSET_READY` to `true` below; every caller
+ * of `BrandMark`/`BrandLockup` picks up the real asset automatically, with no
+ * other change needed anywhere in the app.
  */
+const LOGO_ASSET_READY = false;
+const LOGO_ASSET_PATH = '/brand/stem-buds-logo.png';
+/** Update this once the real file's pixel dimensions are known. */
+const LOGO_ASSET_ASPECT_RATIO = 1;
+
+function PlaceholderMark({
+  className,
+  heightPx,
+}: {
+  className?: string;
+  heightPx: number;
+}) {
+  return (
+    <span
+      role="img"
+      aria-label="STEM & BUDS Türkiye logosu (yer tutucu)"
+      className={cn(
+        'inline-flex shrink-0 items-center justify-center rounded-full bg-navy-800 font-semibold text-white',
+        className,
+      )}
+      style={{ height: heightPx, width: heightPx, fontSize: heightPx * 0.4 }}
+    >
+      <span aria-hidden="true" className="tracking-tight" style={{ fontSize: '1em' }}>
+        S&amp;B
+      </span>
+    </span>
+  );
+}
+
 export function BrandMark({
   className,
   heightPx = 40,
 }: {
   className?: string;
-  /** Rendered height in pixels; width is derived from the asset's aspect ratio. */
   heightPx?: number;
 }) {
-  const width = Math.round((heightPx * 319) / 420);
+  if (!LOGO_ASSET_READY) {
+    return <PlaceholderMark className={className} heightPx={heightPx} />;
+  }
+
+  const width = Math.round(heightPx * LOGO_ASSET_ASPECT_RATIO);
   return (
     <Image
-      src="/brand/stem-buds-icon.png"
+      src={LOGO_ASSET_PATH}
       alt="STEM & BUDS Türkiye logosu"
       width={width}
       height={heightPx}
@@ -47,16 +84,11 @@ const wordSizes = { sm: 'text-base', md: 'text-lg', lg: 'text-2xl' } as const;
 const regionSizes = { sm: 'text-[0.55rem]', md: 'text-[0.6rem]', lg: 'text-xs' } as const;
 
 /**
- * The full logo lockup: the official icon plus a live STEM & BUDS / TÜRKİYE
- * wordmark.
+ * The full logo lockup: the mark plus a live STEM & BUDS / TÜRKİYE wordmark.
  *
- * The organization's own lockup asset (`stem-buds-lockup.png`) bakes its
- * wordmark in navy, which disappears on dark surfaces — so navigation and the
- * dark auth header pair the untouched official icon with real, theme-aware
- * text instead of that flattened image, exactly the way this component was
- * already structured. Where a fully static, always-light lockup is wanted
- * (e.g. a footer badge or a printed document), use `stem-buds-lockup.png`
- * directly.
+ * The wordmark is always real, theme-aware text (never baked into the image),
+ * so it stays legible on both light and dark surfaces regardless of what the
+ * final logo asset looks like.
  */
 export function BrandLockup({
   tone = 'light',

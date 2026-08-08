@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { closeDb, getDb } from '@/server/db';
 import { getEnv } from '@/server/env';
+import { ensureCorePrograms } from '@/server/services/program-service';
 
 /**
  * Integration-test database helpers.
@@ -37,9 +38,16 @@ export async function truncateAll(): Promise<void> {
   await db.execute(sql.raw(`TRUNCATE TABLE ${names.join(', ')} RESTART IDENTITY CASCADE`));
 }
 
+/**
+ * Resets the test database to a clean, known-empty state — plus the two core
+ * programs, which are reference data expected to exist in every real
+ * environment (production included), not test fixtures. Individual tests
+ * still create their own chapters, groups, users, etc.
+ */
 export async function resetDatabase(): Promise<void> {
   await ensureMigrated();
   await truncateAll();
+  await ensureCorePrograms();
 }
 
 export async function closeTestDb(): Promise<void> {

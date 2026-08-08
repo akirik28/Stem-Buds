@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { getDb } from '@/server/db';
-import { groupMemberships, groups, users } from '@/server/db/schema';
+import { chapters, groupMemberships, groups, users } from '@/server/db/schema';
 import { conflict, notFound, validationError } from '@/server/errors';
 import { disciplineCodes, type DisciplineKey } from '@/lib/i18n/tr';
 import type { UserRole } from '@/server/authz/policy';
@@ -22,6 +22,22 @@ export async function getGroupById(id: string): Promise<Group | null> {
   return row ?? null;
 }
 
+/**
+ * Every group in one program, across all its chapters — the query-level half
+ * of the "Tüm Programlar / Online Ortaokul Programı / BİLSEM Programı"
+ * switcher for cross-chapter, program-wide views (dashboards, exports).
+ *
+ * Like `listChapters`'s `programId` filter, this is not an authorization
+ * boundary: callers must still intersect the result with the caller's scope.
+ */
+export async function listGroupsByProgram(programId: string, academicYearId: string): Promise<Group[]> {
+  return getDb()
+    .select()
+    .from(groups)
+    .where(and(eq(groups.programId, programId), eq(groups.academicYearId, academicYearId)))
+    .orderBy(groups.chapterId, groups.disciplineKey, groups.sequence);
+}
+
 export type CreateGroupInput = {
   chapterId: string;
   academicYearId: string;
@@ -39,12 +55,23 @@ export type CreateGroupInput = {
  * database's unique constraint on (chapter, year, discipline, sequence) is the
  * real guarantee; a collision here surfaces as a clear conflict, not silent
  * corruption.
+ *
+ * `programId` is not accepted as input: it is read from the parent chapter and
+ * copied onto the group, so a group can never end up scoped to a different
+ * program than the chapter it lives in.
  */
 export async function createGroup(input: CreateGroupInput): Promise<Group> {
   const codePrefix = disciplineCodes[input.disciplineKey];
   if (!codePrefix) throw validationError('Geçersiz disiplin.');
 
   return getDb().transaction(async (tx) => {
+    const [chapter] = await tx
+      .select({ id: chapters.id, programId: chapters.programId })
+      .from(chapters)
+      .where(eq(chapters.id, input.chapterId))
+      .limit(1);
+    if (!chapter) throw notFound('Chapter bulunamadı.');
+
     let sequence = input.sequence;
     if (sequence === undefined) {
       const existing = await tx
@@ -81,6 +108,7 @@ export async function createGroup(input: CreateGroupInput): Promise<Group> {
     const [created] = await tx
       .insert(groups)
       .values({
+        programId: chapter.programId,
         chapterId: input.chapterId,
         academicYearId: input.academicYearId,
         disciplineKey: input.disciplineKey,

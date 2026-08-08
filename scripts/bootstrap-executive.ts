@@ -4,17 +4,23 @@ import { closeDb, getDb } from '../src/server/db';
 import { getEnv } from '../src/server/env';
 import { safeCompare } from '../src/server/auth/password';
 import { createUser, executiveExists } from '../src/server/services/user-admin';
+import { ensureCorePrograms } from '../src/server/services/program-service';
 import { AUDIT_ACTIONS, recordAudit } from '../src/server/services/audit';
 import type { UserRole } from '../src/server/authz/policy';
 
 /**
- * Creates the very first Executive Management account.
+ * Creates the very first Executive Management account, and — idempotently —
+ * the organization's two programs (Online Ortaokul Programı, BİLSEM Programı)
+ * if they do not exist yet. Every chapter must belong to one of them, so a
+ * fresh deployment needs both rows before an executive can create its first
+ * chapter; bootstrapping them here means that never needs a separate manual
+ * step. Re-running this script never duplicates them (unique on `key`).
  *
  * Safety properties:
  *  - it is a CLI script, never an HTTP endpoint, so it cannot be abused as an
  *    open registration route;
- *  - it refuses to run once any executive exists, so it cannot stay open
- *    forever and repeating it fails safely;
+ *  - it refuses to create a second executive once one exists, so it cannot
+ *    stay open forever and repeating it fails safely;
  *  - when BOOTSTRAP_TOKEN is set (required in production) the same value must
  *    be passed with --token;
  *  - the temporary password is printed once and never stored.
@@ -57,6 +63,8 @@ async function main(): Promise<void> {
   }
 
   const db = getDb();
+
+  await ensureCorePrograms(db);
 
   if (await executiveExists(db)) {
     console.error(

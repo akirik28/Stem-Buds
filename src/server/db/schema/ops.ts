@@ -2,6 +2,7 @@ import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
   date,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -14,53 +15,17 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from './auth';
 import { academicYears, chapters, groups } from './org';
+import { programs } from './programs';
 import { alertSeverityEnum, alertStatusEnum, alertTabEnum, emailStatusEnum } from './enums';
 
-/**
- * Singleton configuration row for the whole program.
- *
- * The weekly working day and time are never hard-coded: until an executive
- * configures them the platform shows "Haftalık çalışma saati henüz belirlenmedi."
- * and no scheduled reminders are sent.
- */
-export const programSettings = pgTable('program_settings', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  /** Enforces a single row. */
-  singleton: boolean('singleton').notNull().default(true).unique(),
-
-  /** ISO weekday: 1 = Monday ... 7 = Sunday. NULL means "not configured yet". */
-  weeklyDayOfWeek: integer('weekly_day_of_week'),
-  /** Minutes after local midnight, e.g. 18:30 -> 1110. */
-  weeklyStartMinute: integer('weekly_start_minute'),
-  weeklyDurationMinutes: integer('weekly_duration_minutes').notNull().default(60),
-  timezone: varchar('timezone', { length: 64 }).notNull().default('Europe/Istanbul'),
-
-  /** Homework e-mail reminders are configurable and default to OFF. */
-  homeworkEmailRemindersEnabled: boolean('homework_email_reminders_enabled')
-    .notNull()
-    .default(false),
-
-  // --- Alert thresholds (configurable, never scattered as magic constants) ---
-  attendanceYellowThreshold: integer('attendance_yellow_threshold').notNull().default(80),
-  attendanceRedThreshold: integer('attendance_red_threshold').notNull().default(65),
-  consecutiveUnexcusedAbsences: integer('consecutive_unexcused_absences').notNull().default(2),
-  homeworkYellowThreshold: integer('homework_yellow_threshold').notNull().default(70),
-  homeworkMissedOfLastThree: integer('homework_missed_of_last_three').notNull().default(2),
-  incompleteRecordHours: integer('incomplete_record_hours').notNull().default(24),
-  feedbackMinimumResponses: integer('feedback_minimum_responses').notNull().default(3),
-  /** Stored ×10 to avoid floating point in configuration (3.0 -> 30). */
-  feedbackAverageAttentionX10: integer('feedback_average_attention_x10').notNull().default(30),
-
-  configuredAt: timestamp('configured_at', { withTimezone: true }),
-  updatedById: uuid('updated_by_id').references(() => users.id, { onDelete: 'set null' }),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-/** Program-wide "Bu hafta çalışma yok / tatil" entries. */
+/** Program-wide "Bu hafta çalışma yok / tatil" entries, scoped per program. */
 export const programHolidays = pgTable(
   'program_holidays',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    programId: uuid('program_id')
+      .notNull()
+      .references(() => programs.id, { onDelete: 'cascade' }),
     academicYearId: uuid('academic_year_id')
       .notNull()
       .references(() => academicYears.id, { onDelete: 'cascade' }),
@@ -71,7 +36,12 @@ export const programHolidays = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex('program_holidays_year_date_unique').on(table.academicYearId, table.holidayDate),
+    uniqueIndex('program_holidays_program_year_date_unique').on(
+      table.programId,
+      table.academicYearId,
+      table.holidayDate,
+    ),
+    index('program_holidays_program_idx').on(table.programId),
   ],
 );
 
@@ -81,6 +51,16 @@ export const programHolidays = pgTable(
  * `fingerprint` identifies the underlying condition. A partial unique index
  * keeps at most one *open* alert per condition, so repeated evaluation never
  * produces duplicate-alert spam, while resolved history is preserved.
+ *
+ * `programId` is denormalized from the alert's chapter/group (both of which
+ * already carry it) purely so the "Tüm Programlar / Online Ortaokul Programı /
+ * BİLSEM Programı" switcher can filter this dashboard-critical, high-read
+ * table with a plain equality check instead of a join. Like `groups`, that
+ * denormalization is enforced by the database itself: `chapterId`/`groupId`
+ * are composite foreign keys against `(id, program_id)` on their respective
+ * tables (declared below), not plain single-column references, so an alert
+ * can never be tagged with a `programId` that disagrees with the chapter or
+ * group it is actually about.
  */
 export const managementAlerts = pgTable(
   'management_alerts',
@@ -91,11 +71,14 @@ export const managementAlerts = pgTable(
     severity: alertSeverityEnum('severity').notNull(),
     status: alertStatusEnum('status').notNull().default('new'),
 
+    programId: uuid('program_id')
+      .notNull()
+      .references(() => programs.id, { onDelete: 'cascade' }),
     academicYearId: uuid('academic_year_id')
       .notNull()
       .references(() => academicYears.id, { onDelete: 'cascade' }),
-    chapterId: uuid('chapter_id').references(() => chapters.id, { onDelete: 'cascade' }),
-    groupId: uuid('group_id').references(() => groups.id, { onDelete: 'cascade' }),
+    chapterId: uuid('chapter_id'),
+    groupId: uuid('group_id'),
 
     /** Turkish, ready to display. */
     title: varchar('title', { length: 200 }).notNull(),
@@ -120,6 +103,22 @@ export const managementAlerts = pgTable(
       .where(sql`status in ('new', 'investigating')`),
     index('management_alerts_tab_status_idx').on(table.tab, table.status),
     index('management_alerts_chapter_idx').on(table.chapterId, table.status),
+    index('management_alerts_program_idx').on(table.programId, table.status),
+    // Composite FKs (not plain single-column references): Postgres only
+    // enforces these when the referencing column is non-null (its default
+    // MATCH SIMPLE behavior), so a chapter-less/group-less alert is
+    // unaffected — but whenever chapterId/groupId *is* set, its programId is
+    // now guaranteed to match.
+    foreignKey({
+      name: 'management_alerts_chapter_id_program_id_chapters_fk',
+      columns: [table.chapterId, table.programId],
+      foreignColumns: [chapters.id, chapters.programId],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'management_alerts_group_id_program_id_groups_fk',
+      columns: [table.groupId, table.programId],
+      foreignColumns: [groups.id, groups.programId],
+    }).onDelete('cascade'),
   ],
 );
 
@@ -205,6 +204,7 @@ export const auditLogs = pgTable(
 );
 
 export const managementAlertsRelations = relations(managementAlerts, ({ one }) => ({
+  program: one(programs, { fields: [managementAlerts.programId], references: [programs.id] }),
   chapter: one(chapters, { fields: [managementAlerts.chapterId], references: [chapters.id] }),
   group: one(groups, { fields: [managementAlerts.groupId], references: [groups.id] }),
 }));

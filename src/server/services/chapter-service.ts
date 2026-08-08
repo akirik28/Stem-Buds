@@ -12,8 +12,20 @@ export function normalizeChapterCode(raw: string): string {
   return raw.trim().toLocaleUpperCase('tr').replace(/İ/g, 'I');
 }
 
-export async function listChapters(): Promise<Chapter[]> {
-  return getDb().select().from(chapters).orderBy(desc(chapters.createdAt));
+/**
+ * Lists chapters, optionally narrowed to one program — the query-level half of
+ * the "Tüm Programlar / Online Ortaokul Programı / BİLSEM Programı" switcher.
+ *
+ * This is a convenience filter, not an authorization boundary: callers must
+ * still intersect the result with the caller's `AccessScope` (a Chapter Head
+ * only ever sees their own `headChapterIds` regardless of this filter).
+ */
+export async function listChapters(filter: { programId?: string } = {}): Promise<Chapter[]> {
+  const query = getDb().select().from(chapters).orderBy(desc(chapters.createdAt));
+  if (filter.programId) {
+    return query.where(eq(chapters.programId, filter.programId));
+  }
+  return query;
 }
 
 export async function getChapterById(id: string): Promise<Chapter | null> {
@@ -22,6 +34,7 @@ export async function getChapterById(id: string): Promise<Chapter | null> {
 }
 
 export type CreateChapterInput = {
+  programId: string;
   code: string;
   name: string;
   city?: string | null;
@@ -35,6 +48,7 @@ export async function createChapter(input: CreateChapterInput): Promise<Chapter>
   }
   const name = input.name.trim();
   if (name.length < 2) throw validationError('Chapter adı zorunludur.');
+  if (!input.programId) throw validationError('Chapter bir programa bağlı olmalıdır.');
 
   return getDb().transaction(async (tx) => {
     const existing = await tx.select({ id: chapters.id }).from(chapters).where(eq(chapters.code, code));
@@ -42,7 +56,7 @@ export async function createChapter(input: CreateChapterInput): Promise<Chapter>
 
     const [created] = await tx
       .insert(chapters)
-      .values({ code, name, city: input.city?.trim() || null })
+      .values({ programId: input.programId, code, name, city: input.city?.trim() || null })
       .returning();
     if (!created) throw conflict('Chapter oluşturulamadı.');
 
@@ -55,7 +69,7 @@ export async function createChapter(input: CreateChapterInput): Promise<Chapter>
         targetId: created.id,
         targetLabel: created.code,
         chapterId: created.id,
-        after: { code, name, city: input.city ?? null },
+        after: { code, name, city: input.city ?? null, programId: input.programId },
       },
       tx,
     );

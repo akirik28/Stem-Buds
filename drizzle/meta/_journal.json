@@ -8,6 +8,27 @@
       "when": 1786179719376,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786183742789,
+      "tag": "0001_add_programs_additive",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786183759564,
+      "tag": "0002_backfill_programs",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786183842862,
+      "tag": "0003_finalize_program_scoping",
+      "breakpoints": true
     }
   ]
 }
