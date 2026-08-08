@@ -179,6 +179,7 @@ describe('chapter and group program scoping', () => {
         .values({
           fingerprint: 'test-fingerprint',
           tab: 'weekly',
+          category: 'attendance_risk',
           severity: 'red',
           programId: bilsemProgramId,
           academicYearId,

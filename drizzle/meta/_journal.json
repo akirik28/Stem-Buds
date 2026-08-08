@@ -64,6 +64,13 @@
       "when": 1786193895053,
       "tag": "0008_add_milestone_created_by",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786207801742,
+      "tag": "0009_phase5_alerts_and_ai_insights",
+      "breakpoints": true
     }
   ]
 }

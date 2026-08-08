@@ -63,6 +63,8 @@ export const AUDIT_ACTIONS = {
   userDeleted: 'user.deleted',
   weeklySessionCancelled: 'weekly_session.cancelled',
   weeklySessionDeleted: 'weekly_session.deleted',
+  alertStatusChanged: 'management_alert.status_changed',
+  aiInsightGenerated: 'ai_insight.generated',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

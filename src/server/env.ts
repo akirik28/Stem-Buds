@@ -37,6 +37,13 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string().optional(),
 
   UPLOAD_DIR: z.string().default('./storage'),
+
+  /**
+   * Server-only. Never read from a client component, never logged, never
+   * included in a client bundle. Optional: Phase 5 AI surfaces degrade to
+   * the graceful "unavailable" state (see `server/ai/provider.ts`) when unset.
+   */
+  GROQ_API_KEY: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof envSchema>;
@@ -72,6 +79,7 @@ export function getEnv(): ServerEnv {
     SMTP_USER: emptyToUndefined(process.env.SMTP_USER),
     SMTP_PASSWORD: emptyToUndefined(process.env.SMTP_PASSWORD),
     UPLOAD_DIR: emptyToUndefined(process.env.UPLOAD_DIR),
+    GROQ_API_KEY: emptyToUndefined(process.env.GROQ_API_KEY),
   });
 
   if (!parsed.success) {

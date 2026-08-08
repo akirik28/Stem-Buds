@@ -68,6 +68,49 @@ export const alertStatusEnum = pgEnum('alert_status', [
 /** Which management-feed tab an alert belongs to. */
 export const alertTabEnum = pgEnum('alert_tab', ['weekly', 'project', 'feedback']);
 
+/**
+ * The deterministic condition an alert represents. `session_attention` (a
+ * missed/at-risk planned session) is deliberately not a separate value here:
+ * the current domain model only ever detects that as "the weekly record is
+ * still incomplete >24h after the session", which is `missing_weekly_record`
+ * — a second category for the same condition would just be duplicate-alert
+ * risk under a different name. Likewise there is no
+ * `mentor_followup_missing`: no existing business rule defines what a
+ * "missing mentor follow-up" is independent of the categories below.
+ */
+export const alertCategoryEnum = pgEnum('alert_category', [
+  'missing_weekly_record',
+  'attendance_risk',
+  'homework_risk',
+  'project_stale',
+  'project_blocked',
+  'milestone_overdue',
+]);
+
+/** Which bounded Phase 5 AI surface produced a cached insight. */
+export const aiInsightTypeEnum = pgEnum('ai_insight_type', [
+  /** "Haftalık Özet" — REGIONAL_DIRECTOR / VICE_DIRECTOR. */
+  'weekly_summary',
+  /** "Grup Durumları" — CHAPTER_HEAD. */
+  'chapter_group_status',
+  /** "Verilere Sor" — REGIONAL_DIRECTOR / VICE_DIRECTOR only. */
+  'data_question',
+  /** "Dikkat Gerektirenler" explanation — MENTOR. */
+  'mentor_alert_explainer',
+  /** "Grup Özetleri" — ADVISOR_TEACHER, one entry per authorized Group. */
+  'advisor_group_summary',
+]);
+
+/** What kind of scope an `ai_insights` cache row is keyed to. */
+export const aiScopeTypeEnum = pgEnum('ai_scope_type', [
+  'organization',
+  'program',
+  'chapter',
+  /** Keyed to a Mentor's own user ID — "their assigned Groups" as of generation time. */
+  'mentor',
+  'group',
+]);
+
 /** Category chosen by a student when sending continuous feedback. */
 export const feedbackCategoryEnum = pgEnum('feedback_category', [
   'mentor',

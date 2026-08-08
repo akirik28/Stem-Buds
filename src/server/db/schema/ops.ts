@@ -16,7 +16,15 @@ import {
 import { users } from './auth';
 import { academicYears, chapters, groups } from './org';
 import { programs } from './programs';
-import { alertSeverityEnum, alertStatusEnum, alertTabEnum, emailStatusEnum } from './enums';
+import {
+  aiInsightTypeEnum,
+  aiScopeTypeEnum,
+  alertCategoryEnum,
+  alertSeverityEnum,
+  alertStatusEnum,
+  alertTabEnum,
+  emailStatusEnum,
+} from './enums';
 
 /** Program-wide "Bu hafta çalışma yok / tatil" entries, scoped per program. */
 export const programHolidays = pgTable(
@@ -68,6 +76,7 @@ export const managementAlerts = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     fingerprint: varchar('fingerprint', { length: 200 }).notNull(),
     tab: alertTabEnum('tab').notNull(),
+    category: alertCategoryEnum('category').notNull(),
     severity: alertSeverityEnum('severity').notNull(),
     status: alertStatusEnum('status').notNull().default('new'),
 
@@ -102,6 +111,7 @@ export const managementAlerts = pgTable(
       .on(table.fingerprint)
       .where(sql`status in ('new', 'investigating')`),
     index('management_alerts_tab_status_idx').on(table.tab, table.status),
+    index('management_alerts_category_status_idx').on(table.category, table.status),
     index('management_alerts_chapter_idx').on(table.chapterId, table.status),
     index('management_alerts_program_idx').on(table.programId, table.status),
     // Composite FKs (not plain single-column references): Postgres only
@@ -203,6 +213,54 @@ export const auditLogs = pgTable(
   ],
 );
 
+/**
+ * Cached result of one bounded Phase 5 AI surface (see `authz/ai.ts` for the
+ * five allowed `insightType`s). This is a cache, not a source of truth: the
+ * facts it summarizes are always computed deterministically first and the
+ * caller is always re-authorized for `scopeType`/`scopeId`/`programId`
+ * before a cache hit is ever returned — a row existing here is never itself
+ * treated as proof that the current caller may read it.
+ *
+ * `contextHash` changes whenever the underlying deterministic facts change,
+ * so a new row is written instead of silently reusing stale content; old
+ * rows are harmless generated history, not alert state, and are never
+ * required to be deleted.
+ */
+export const aiInsights = pgTable(
+  'ai_insights',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    insightType: aiInsightTypeEnum('insight_type').notNull(),
+    scopeType: aiScopeTypeEnum('scope_type').notNull(),
+    /** Null only for `scopeType = 'organization'`. */
+    scopeId: uuid('scope_id'),
+    /** Null only for an organization-wide, all-Programs Executive view. */
+    programId: uuid('program_id').references(() => programs.id, { onDelete: 'cascade' }),
+    /** ISO week key such as "2026-W32"; only meaningful for periodic insights. */
+    periodKey: varchar('period_key', { length: 16 }),
+    /** sha256 of the exact structured facts object sent to the model. */
+    contextHash: varchar('context_hash', { length: 64 }).notNull(),
+
+    result: jsonb('result').$type<Record<string, unknown>>().notNull(),
+    provider: varchar('provider', { length: 32 }).notNull(),
+    model: varchar('model', { length: 64 }).notNull(),
+
+    generatedByUserId: uuid('generated_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('ai_insights_identity_unique').on(
+      table.insightType,
+      table.scopeType,
+      table.scopeId,
+      table.programId,
+      table.periodKey,
+      table.contextHash,
+    ),
+    index('ai_insights_lookup_idx').on(table.insightType, table.scopeType, table.scopeId),
+  ],
+);
+
 export const managementAlertsRelations = relations(managementAlerts, ({ one }) => ({
   program: one(programs, { fields: [managementAlerts.programId], references: [programs.id] }),
   chapter: one(chapters, { fields: [managementAlerts.chapterId], references: [chapters.id] }),
@@ -215,4 +273,9 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   actor: one(users, { fields: [auditLogs.actorUserId], references: [users.id] }),
+}));
+
+export const aiInsightsRelations = relations(aiInsights, ({ one }) => ({
+  program: one(programs, { fields: [aiInsights.programId], references: [programs.id] }),
+  generatedBy: one(users, { fields: [aiInsights.generatedByUserId], references: [users.id] }),
 }));

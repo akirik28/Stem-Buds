@@ -83,6 +83,21 @@ export const alertSeverityLabels = {
   red: 'Aksiyon gerekiyor',
 } as const;
 
+export const alertCategoryLabels = {
+  missing_weekly_record: 'Eksik haftalık kayıt',
+  attendance_risk: 'Katılım riski',
+  homework_risk: 'Ödev riski',
+  project_stale: 'Proje güncellenmedi',
+  project_blocked: 'Proje engeli',
+  milestone_overdue: 'Milestone gecikti',
+} as const;
+
+export const alertTabLabels = {
+  weekly: 'Haftalık Takip',
+  project: 'Proje & Grup Sağlığı',
+  feedback: 'Geri Bildirim & Şikâyetler',
+} as const;
+
 export const complaintStatusLabels = {
   new: 'Yeni',
   investigating: 'İnceleniyor',

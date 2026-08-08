@@ -28,6 +28,14 @@ export function buildNavigation(scope: AccessScope): NavItem[] {
     items.push({ href: '/panel/yonetim-akisi', label: 'Yönetim Akışı' });
   }
 
+  if (isMentor(scope.role)) {
+    items.push({ href: '/panel/dikkat-gerektirenler', label: 'Dikkat Gerektirenler' });
+  }
+
+  if (isAdvisorTeacher(scope.role)) {
+    items.push({ href: '/panel/grup-ozetleri', label: 'Grup Özetleri' });
+  }
+
   if (!isStudent(scope.role)) {
     items.push({ href: '/panel/gruplar', label: 'Gruplar' });
   }
