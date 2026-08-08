@@ -150,6 +150,8 @@ export const contactReasonLabels = {
   other: 'Diğer',
 } as const;
 
+export type ContactReason = keyof typeof contactReasonLabels;
+
 export const disciplineLabels = {
   bio: 'Biyoloji',
   chem: 'Kimya',
