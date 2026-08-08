@@ -24,10 +24,6 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   serverExternalPackages: ['@node-rs/argon2', 'pg', 'exceljs', 'nodemailer'],
-  eslint: {
-    // Lint is run explicitly via `npm run lint`; keep builds focused on type/compile errors.
-    ignoreDuringBuilds: true,
-  },
   async headers() {
     return [
       {
