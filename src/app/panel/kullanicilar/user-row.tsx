@@ -13,6 +13,7 @@ import {
   deactivateUserAction,
   reactivateUserAction,
   resetPasswordAction,
+  updateAdvisorProgramsAction,
   type ActionState,
 } from './actions';
 import { CredentialReveal } from './credential-reveal';
@@ -27,18 +28,30 @@ export type UserRowData = {
   lastLoginAt: string | null;
 };
 
-const ALL_ROLES: UserRole[] = ['student', 'mentor', 'chapter_head', 'vice_president', 'regional_director'];
+const ALL_ROLES: UserRole[] = [
+  'student',
+  'mentor',
+  'chapter_head',
+  'advisor_teacher',
+  'vice_president',
+  'regional_director',
+];
 
 export function UserRow({
   user,
   canAssignExecutive,
+  programOptions,
+  currentProgramIds,
 }: {
   user: UserRowData;
   canAssignExecutive: boolean;
+  programOptions: { id: string; label: string }[];
+  currentProgramIds: string[];
 }) {
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<ActionState | null>(null);
   const [confirmingDeactivate, setConfirmingDeactivate] = useState(false);
+  const [selectedPrograms, setSelectedPrograms] = useState<string[]>(currentProgramIds);
 
   function run(action: () => Promise<ActionState>) {
     startTransition(async () => {
@@ -157,6 +170,37 @@ export function UserRow({
           )}
         </div>
       </div>
+
+      {user.role === 'advisor_teacher' ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg bg-navy-50 px-3 py-2.5">
+          <span className="text-xs font-medium text-navy-600">Programlar:</span>
+          {programOptions.map((program) => (
+            <label key={program.id} className="flex items-center gap-1.5 text-sm text-navy-800">
+              <input
+                type="checkbox"
+                checked={selectedPrograms.includes(program.id)}
+                disabled={pending}
+                onChange={(event) => {
+                  setSelectedPrograms((prev) =>
+                    event.target.checked ? [...prev, program.id] : prev.filter((id) => id !== program.id),
+                  );
+                }}
+                className="h-4 w-4 rounded border-navy-300"
+              />
+              {program.label}
+            </label>
+          ))}
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={pending}
+            onClick={() => run(() => updateAdvisorProgramsAction(user.id, selectedPrograms))}
+          >
+            Programları Kaydet
+          </Button>
+        </div>
+      ) : null}
 
       {result?.error ? (
         <Alert tone="error" className="mt-3">

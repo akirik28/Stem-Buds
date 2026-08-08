@@ -328,6 +328,45 @@ export async function setHomeworkDecision(input: SetHomeworkInput): Promise<Home
   });
 }
 
+/**
+ * Deletes a homework assignment that never accumulated results. Authorization
+ * (creator-only, plus RD/VP override) is enforced by the caller via
+ * `canDeleteHomeworkAssignment` — this function enforces the historical-data
+ * safety net: once results have been finalized for even one student, the
+ * assignment is history and can never be destructively deleted, only the
+ * ownership/scope check above decides *who* may call this at all.
+ */
+export async function deleteHomeworkAssignment(input: { assignmentId: string; actor: Actor }): Promise<void> {
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    const [assignment] = await tx
+      .select()
+      .from(homeworkAssignments)
+      .where(eq(homeworkAssignments.id, input.assignmentId))
+      .limit(1);
+    if (!assignment) throw notFound('Ödev bulunamadı.');
+    if (assignment.resultsFinalizedAt !== null) {
+      throw validationError('Sonuçları sonuçlandırılmış bir ödev silinemez; geçmiş kaydı korunur.');
+    }
+
+    await tx.delete(homeworkAssignments).where(eq(homeworkAssignments.id, input.assignmentId));
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.homeworkAssignmentDeleted,
+        targetType: 'homework_assignment',
+        targetId: assignment.id,
+        before: { description: assignment.description, weeklySessionId: assignment.weeklySessionId },
+      },
+      tx,
+    );
+
+    await recomputeCompletion(assignment.weeklySessionId, tx);
+  });
+}
+
 export type FinalizePreviousHomeworkInput = {
   weeklySessionId: string;
   statuses: { groupMembershipId: string; status: 'done' | 'not_done' | 'excused'; note?: string | null }[];
@@ -441,6 +480,11 @@ export async function getWorkLogBySessionId(weeklySessionId: string): Promise<We
     .from(weeklyWorkLogs)
     .where(eq(weeklyWorkLogs.weeklySessionId, weeklySessionId))
     .limit(1);
+  return row ?? null;
+}
+
+export async function getHomeworkAssignmentById(assignmentId: string): Promise<HomeworkAssignment | null> {
+  const [row] = await getDb().select().from(homeworkAssignments).where(eq(homeworkAssignments.id, assignmentId)).limit(1);
   return row ?? null;
 }
 

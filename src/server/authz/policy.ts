@@ -22,6 +22,10 @@ export type AccessScope = {
   studentGroupIds: readonly string[];
   /** Subset of `studentGroupIds` where the student is also Team Leader. */
   teamLeaderGroupIds: readonly string[];
+  /** Programs an Advisor Teacher is scoped to observe. Empty for every other role. */
+  advisorProgramIds: readonly string[];
+  /** Every chapter inside `advisorProgramIds`, precomputed for `canViewChapter`/`canViewGroup`. */
+  advisorChapterIds: readonly string[];
 };
 
 export const EXECUTIVE_ROLES: readonly UserRole[] = ['regional_director', 'vice_president'];
@@ -42,6 +46,15 @@ export function isStudent(role: UserRole): boolean {
   return role === 'student';
 }
 
+/**
+ * A Danışman Öğretmen (Advisor Teacher): a read-only academic/operational
+ * observer scoped to one or more Programs. Never a management role — no
+ * `can*` write-permission function in this file ever returns true for it.
+ */
+export function isAdvisorTeacher(role: UserRole): boolean {
+  return role === 'advisor_teacher';
+}
+
 /** Only Executive Management may create accounts or change executive roles. */
 export function canManageAccounts(scope: AccessScope): boolean {
   return isExecutive(scope.role);
@@ -57,10 +70,18 @@ export function canAssignRole(scope: AccessScope, targetRole: UserRole): boolean
   return true;
 }
 
+/** Read access to a Program's aggregate data (used by top-level Program filters). */
+export function canViewProgram(scope: AccessScope, programId: string): boolean {
+  if (isExecutive(scope.role)) return true;
+  if (isAdvisorTeacher(scope.role)) return scope.advisorProgramIds.includes(programId);
+  return false;
+}
+
 /** Read access to a chapter's operational data. */
 export function canViewChapter(scope: AccessScope, chapterId: string): boolean {
   if (isExecutive(scope.role)) return true;
   if (isChapterHead(scope.role)) return scope.headChapterIds.includes(chapterId);
+  if (isAdvisorTeacher(scope.role)) return scope.advisorChapterIds.includes(chapterId);
   return scope.memberChapterIds.includes(chapterId);
 }
 
@@ -76,6 +97,7 @@ export function canViewGroup(scope: AccessScope, groupId: string, chapterId: str
   if (isChapterHead(scope.role)) return scope.headChapterIds.includes(chapterId);
   if (isMentor(scope.role)) return scope.mentorGroupIds.includes(groupId);
   if (isStudent(scope.role)) return scope.studentGroupIds.includes(groupId);
+  if (isAdvisorTeacher(scope.role)) return scope.advisorChapterIds.includes(chapterId);
   return false;
 }
 
@@ -111,6 +133,46 @@ export function canApproveWeeklySession(
   chapterId: string,
 ): boolean {
   return canFinalizeWeeklyRecord(scope, groupId, chapterId);
+}
+
+/**
+ * May create/edit a group's project: details, status, milestones, outcome.
+ * Same boundary as the weekly record — the project's mentor, or chapter
+ * oversight/above. A Team Leader may draft the weekly narrative but has no
+ * project-editing right of their own per the master spec.
+ */
+export function canManageProject(scope: AccessScope, groupId: string, chapterId: string): boolean {
+  return canFinalizeWeeklyRecord(scope, groupId, chapterId);
+}
+
+/**
+ * Deletion is narrower than editing everywhere in the product: creation
+ * permission (`canManageProject`/`canFinalizeWeeklyRecord`) defines the
+ * type/scope a person may act in, but only the record's actual creator may
+ * delete that specific record — Regional Director/Vice President keep an
+ * organization-wide administrative override on top. A Chapter Head's
+ * correction rights inside their own chapter do NOT extend to deleting a
+ * Mentor's creations; only their own.
+ */
+export function canDeleteMilestone(
+  scope: AccessScope,
+  target: { groupId: string; chapterId: string; createdByUserId: string | null },
+): boolean {
+  if (isExecutive(scope.role)) return true;
+  if (target.createdByUserId === null) return false;
+  return target.createdByUserId === scope.userId && canManageProject(scope, target.groupId, target.chapterId);
+}
+
+/** Same ownership rule as `canDeleteMilestone`, scoped to weekly homework assignments. */
+export function canDeleteHomeworkAssignment(
+  scope: AccessScope,
+  target: { groupId: string; chapterId: string; createdByUserId: string | null },
+): boolean {
+  if (isExecutive(scope.role)) return true;
+  if (target.createdByUserId === null) return false;
+  return (
+    target.createdByUserId === scope.userId && canFinalizeWeeklyRecord(scope, target.groupId, target.chapterId)
+  );
 }
 
 /** Whether the user may read another user's protected personal records. */
@@ -181,6 +243,11 @@ export type ChannelAccessInput = {
  * every group channel, for moderation and safeguarding.
  */
 export function canAccessChannel(scope: AccessScope, channel: ChannelAccessInput): boolean {
+  // Hard rule, checked first and unconditionally: an Advisor Teacher must
+  // never reach any message, in any channel, at any scope — including an
+  // organization-wide advisor who can see both Programs' data everywhere
+  // else. This does not get an exception when messaging (Phase 7) is built.
+  if (isAdvisorTeacher(scope.role)) return false;
   if (isExecutive(scope.role)) return true;
 
   if (channel.type === 'group') {

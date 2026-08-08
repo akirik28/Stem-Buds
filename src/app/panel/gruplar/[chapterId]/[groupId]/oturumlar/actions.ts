@@ -6,14 +6,17 @@ import {
   canEditWeeklyNarrative,
   canFinalizeWeeklyRecord,
   canApproveWeeklySession,
+  canDeleteHomeworkAssignment,
 } from '@/server/authz/policy';
 import { getChapterById } from '@/server/services/chapter-service';
 import { getGroupById } from '@/server/services/group-service';
 import { generateWeeklySessionsForGroup } from '@/server/services/weekly-session-service';
 import {
   approveWeeklySession,
+  deleteHomeworkAssignment,
   finalizeAttendance,
   finalizePreviousHomeworkResults,
+  getHomeworkAssignmentById,
   setHomeworkDecision,
   updateWorkLogNarrative,
   type AttendanceInput,
@@ -134,6 +137,39 @@ export async function setHomeworkAction(
     });
     revalidateSession(chapterId, groupId, sessionId);
     return { success: 'Ödev kaydedildi.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function deleteHomeworkAction(
+  chapterId: string,
+  groupId: string,
+  sessionId: string,
+  assignmentId: string,
+): Promise<ActionState> {
+  const { context, chapter } = await loadContextFor(chapterId, groupId);
+
+  try {
+    const assignment = await getHomeworkAssignmentById(assignmentId);
+    if (!assignment || assignment.groupId !== groupId || assignment.weeklySessionId !== sessionId) {
+      return { error: 'Ödev bulunamadı.' };
+    }
+
+    assertPermission(
+      canDeleteHomeworkAssignment(context.scope, {
+        groupId,
+        chapterId: chapter.id,
+        createdByUserId: assignment.createdById,
+      }),
+    );
+
+    await deleteHomeworkAssignment({
+      assignmentId,
+      actor: { id: context.user.id, name: context.user.fullName },
+    });
+    revalidateSession(chapterId, groupId, sessionId);
+    return { success: 'Ödev silindi.' };
   } catch (error) {
     return { error: toUserMessage(error) };
   }

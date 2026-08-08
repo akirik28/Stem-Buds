@@ -11,6 +11,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { users } from './auth';
 import { academicYears, groups } from './org';
 import { milestoneStatusEnum, projectHealthEnum } from './enums';
 
@@ -77,6 +78,8 @@ export const milestones = pgTable(
     status: milestoneStatusEnum('status').notNull().default('planned'),
     completedAt: timestamp('completed_at', { withTimezone: true }),
     orderIndex: integer('order_index').notNull().default(0),
+    /** Who created it — the "creator can delete their own, unused creation" ownership anchor. */
+    createdById: uuid('created_by_id').references(() => users.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

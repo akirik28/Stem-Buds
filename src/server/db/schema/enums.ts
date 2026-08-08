@@ -15,6 +15,7 @@ export const userRoleEnum = pgEnum('user_role', [
   'chapter_head',
   'mentor',
   'student',
+  'advisor_teacher',
 ]);
 
 /** Role a user holds inside a specific discipline group. */

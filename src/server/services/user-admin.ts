@@ -1,6 +1,6 @@
 import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { getDb, type Database } from '@/server/db';
-import { chapterMemberships, profiles, users } from '@/server/db/schema';
+import { advisorProgramScopes, chapterMemberships, profiles, users } from '@/server/db/schema';
 import { conflict, notFound, validationError } from '@/server/errors';
 import { destroyAllSessionsForUser } from '@/server/auth/session';
 import { generateTemporaryPassword, hashPassword } from '@/server/auth/password';
@@ -22,6 +22,8 @@ export type CreateUserInput = {
   notificationEmail?: string | null;
   chapterId?: string | null;
   academicYearId?: string | null;
+  /** Only meaningful for `advisor_teacher` — which Program(s) they may observe. */
+  programIds?: string[];
   actor: { id: string | null; name: string };
 };
 
@@ -57,6 +59,9 @@ export async function createUser(input: CreateUserInput): Promise<CreatedUser> {
     if (!input.chapterId || !input.academicYearId) {
       throw validationError('Bu rol için chapter ve akademik yıl seçilmelidir.');
     }
+  }
+  if (input.role === 'advisor_teacher' && (!input.programIds || input.programIds.length === 0)) {
+    throw validationError('Danışman Öğretmen için en az bir program seçilmelidir.');
   }
 
   const temporaryPassword = generateTemporaryPassword();
@@ -96,6 +101,12 @@ export async function createUser(input: CreateUserInput): Promise<CreatedUser> {
       });
     }
 
+    if (input.role === 'advisor_teacher' && input.programIds && input.programIds.length > 0) {
+      await tx
+        .insert(advisorProgramScopes)
+        .values(input.programIds.map((programId) => ({ userId: created.id, programId })));
+    }
+
     await recordAudit(
       {
         actorUserId: input.actor.id,
@@ -106,7 +117,7 @@ export async function createUser(input: CreateUserInput): Promise<CreatedUser> {
         targetLabel: username,
         chapterId: input.chapterId ?? null,
         academicYearId: input.academicYearId ?? null,
-        after: { username, fullName, role: input.role },
+        after: { username, fullName, role: input.role, programIds: input.programIds ?? null },
       },
       tx,
     );
@@ -291,4 +302,55 @@ export async function changeUserRole(input: {
   });
 
   await destroyAllSessionsForUser(input.targetUserId);
+}
+
+export async function listAdvisorProgramIds(userId: string): Promise<string[]> {
+  const rows = await getDb()
+    .select({ programId: advisorProgramScopes.programId })
+    .from(advisorProgramScopes)
+    .where(eq(advisorProgramScopes.userId, userId));
+  return rows.map((r) => r.programId);
+}
+
+/**
+ * Replaces an Advisor Teacher's full set of observed Programs. Idempotent —
+ * safe to call with the same set repeatedly.
+ */
+export async function setAdvisorProgramScopes(input: {
+  userId: string;
+  programIds: string[];
+  actor: { id: string | null; name: string };
+}): Promise<void> {
+  await getDb().transaction(async (tx) => {
+    const [target] = await tx.select({ id: users.id, role: users.role }).from(users).where(eq(users.id, input.userId)).limit(1);
+    if (!target) throw notFound('Kullanıcı bulunamadı.');
+    if (target.role !== 'advisor_teacher') {
+      throw validationError('Yalnızca Danışman Öğretmen rolündeki kullanıcılar için program ataması yapılabilir.');
+    }
+
+    const before = await tx
+      .select({ programId: advisorProgramScopes.programId })
+      .from(advisorProgramScopes)
+      .where(eq(advisorProgramScopes.userId, input.userId));
+
+    await tx.delete(advisorProgramScopes).where(eq(advisorProgramScopes.userId, input.userId));
+    if (input.programIds.length > 0) {
+      await tx
+        .insert(advisorProgramScopes)
+        .values(input.programIds.map((programId) => ({ userId: input.userId, programId })));
+    }
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.advisorProgramsChanged,
+        targetType: 'user',
+        targetId: input.userId,
+        before: { programIds: before.map((r) => r.programId) },
+        after: { programIds: input.programIds },
+      },
+      tx,
+    );
+  });
 }

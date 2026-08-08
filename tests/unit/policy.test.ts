@@ -29,6 +29,8 @@ function scope(overrides: Partial<AccessScope> & Pick<AccessScope, 'userId' | 'r
     mentorGroupIds: [],
     studentGroupIds: [],
     teamLeaderGroupIds: [],
+    advisorProgramIds: [],
+    advisorChapterIds: [],
     ...overrides,
   };
 }

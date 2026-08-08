@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { requireAuthContext } from '@/server/auth/context';
 import { canManageAccounts } from '@/server/authz/policy';
-import { listUsers } from '@/server/services/user-admin';
+import { listAdvisorProgramIds, listUsers } from '@/server/services/user-admin';
 import { listChapters } from '@/server/services/chapter-service';
 import { listPrograms } from '@/server/services/program-service';
 import { Card, CardTitle, EmptyState } from '@/components/ui/card';
@@ -41,7 +41,10 @@ export default async function UsersPage() {
 
       <Card>
         <CardTitle>Yeni kullanıcı oluştur</CardTitle>
-        <CreateUserForm chapterOptions={chapterOptions} />
+        <CreateUserForm
+          chapterOptions={chapterOptions}
+          programOptions={programs.map((program) => ({ id: program.id, label: program.name }))}
+        />
       </Card>
 
       <Card>
@@ -50,21 +53,25 @@ export default async function UsersPage() {
           <EmptyState title="Henüz kullanıcı bulunmuyor." />
         ) : (
           <div className="mt-3 divide-y divide-navy-100">
-            {users.map((user) => (
-              <UserRow
-                key={user.id}
-                user={{
-                  id: user.id,
-                  username: user.username,
-                  fullName: user.fullName,
-                  role: user.role,
-                  isActive: user.isActive,
-                  mustChangePassword: user.mustChangePassword,
-                  lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
-                }}
-                canAssignExecutive={context.user.role !== 'chapter_head'}
-              />
-            ))}
+            {await Promise.all(
+              users.map(async (user) => (
+                <UserRow
+                  key={user.id}
+                  user={{
+                    id: user.id,
+                    username: user.username,
+                    fullName: user.fullName,
+                    role: user.role,
+                    isActive: user.isActive,
+                    mustChangePassword: user.mustChangePassword,
+                    lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+                  }}
+                  canAssignExecutive={context.user.role !== 'chapter_head'}
+                  programOptions={programs.map((program) => ({ id: program.id, label: program.shortName }))}
+                  currentProgramIds={user.role === 'advisor_teacher' ? await listAdvisorProgramIds(user.id) : []}
+                />
+              )),
+            )}
           </div>
         )}
       </Card>

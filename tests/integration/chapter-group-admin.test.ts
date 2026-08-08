@@ -214,6 +214,8 @@ describe('multiple Regional Directors', () => {
       mentorGroupIds: [],
       studentGroupIds: [],
       teamLeaderGroupIds: [],
+      advisorProgramIds: [],
+      advisorChapterIds: [],
     };
     const handeScope = { ...adaScope, userId: hande.userId };
 

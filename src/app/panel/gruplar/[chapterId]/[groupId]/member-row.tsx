@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
+import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
 import { StatusPill } from '@/components/ui/status';
 import { removeGroupMemberAction, setTeamLeaderAction, type ActionState } from '../../actions';
 
@@ -68,15 +69,13 @@ export function MemberRow({
                   {member.isTeamLeader ? 'Takım Liderliğini Kaldır' : 'Takım Lideri Yap'}
                 </Button>
               ) : null}
-              <Button
-                type="button"
-                variant="danger"
-                size="sm"
+              <ConfirmDeleteButton
+                label="Gruptan Çıkar"
+                confirmLabel="Evet, Çıkar"
+                confirmQuestion={`${member.fullName} gruptan çıkarılsın mı?`}
                 disabled={pending}
-                onClick={() => run(() => removeGroupMemberAction(chapterId, groupId, member.membershipId))}
-              >
-                Gruptan Çıkar
-              </Button>
+                onConfirm={() => run(() => removeGroupMemberAction(chapterId, groupId, member.membershipId))}
+              />
             </>
           ) : null}
         </div>

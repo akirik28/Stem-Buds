@@ -15,6 +15,7 @@ const ASSIGNABLE_ROLES = [
   'student',
   'mentor',
   'chapter_head',
+  'advisor_teacher',
   'vice_president',
   'regional_director',
 ] as const;
@@ -30,12 +31,15 @@ function SubmitButton() {
 
 export function CreateUserForm({
   chapterOptions,
+  programOptions,
 }: {
   chapterOptions: { id: string; label: string }[];
+  programOptions: { id: string; label: string }[];
 }) {
   const [state, formAction] = useActionState<ActionState, FormData>(createUserAction, {});
   const [role, setRole] = useState<string>('student');
   const needsChapter = CHAPTER_SCOPED_ROLES.has(role);
+  const needsPrograms = role === 'advisor_teacher';
 
   if (state.credential) {
     return <CredentialReveal credential={state.credential} title="Kullanıcı oluşturuldu" />;
@@ -82,6 +86,30 @@ export function CreateUserForm({
             ))}
           </Select>
         </Field>
+      ) : null}
+
+      {needsPrograms ? (
+        <fieldset className="sm:col-span-2">
+          <legend className="block text-sm font-medium text-navy-800">
+            Programlar <span className="ml-1 text-red-700">*</span>
+          </legend>
+          <div className="mt-2 flex flex-wrap gap-4">
+            {programOptions.map((program) => (
+              <label key={program.id} className="flex items-center gap-2 text-sm text-navy-800">
+                <input
+                  type="checkbox"
+                  name="programIds"
+                  value={program.id}
+                  className="h-4 w-4 rounded border-navy-300"
+                />
+                {program.label}
+              </label>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-navy-500">
+            Her iki program da seçilirse organizasyon geneli görünürlük tanımlanır.
+          </p>
+        </fieldset>
       ) : null}
 
       <Field

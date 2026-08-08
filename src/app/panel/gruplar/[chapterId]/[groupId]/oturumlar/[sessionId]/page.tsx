@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { requireAuthContext } from '@/server/auth/context';
 import {
   canApproveWeeklySession,
+  canDeleteHomeworkAssignment,
   canEditWeeklyNarrative,
   canFinalizeWeeklyRecord,
   canViewGroup,
@@ -26,6 +27,7 @@ import { attendanceLabels, homeworkStatusLabels, weeklySessionStateLabels } from
 import { AttendanceForm } from './attendance-form';
 import { NarrativeForm } from './narrative-form';
 import { HomeworkForm } from './homework-form';
+import { DeleteHomeworkButton } from './delete-homework-button';
 import { PreviousHomeworkForm } from './previous-homework-form';
 import { ApproveButton } from './approve-button';
 
@@ -182,6 +184,20 @@ export default async function WeeklySessionPage({
             ) : (
               <ReadOnlyHomework homework={homework} />
             )}
+            {homework &&
+            homework.resultsFinalizedAt === null &&
+            canDeleteHomeworkAssignment(context.scope, {
+              groupId: group.id,
+              chapterId: chapter.id,
+              createdByUserId: homework.createdById,
+            }) ? (
+              <DeleteHomeworkButton
+                chapterId={chapter.id}
+                groupId={group.id}
+                sessionId={session.id}
+                assignmentId={homework.id}
+              />
+            ) : null}
           </Card>
 
           {previousHomework ? (

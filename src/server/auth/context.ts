@@ -1,8 +1,8 @@
 import { cache } from 'react';
 import { cookies } from 'next/headers';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { getDb } from '@/server/db';
-import { chapterMemberships, groupMemberships, groups } from '@/server/db/schema';
+import { advisorProgramScopes, chapterMemberships, chapters, groupMemberships, groups } from '@/server/db/schema';
 import { forbidden, unauthenticated } from '@/server/errors';
 import type { AccessScope } from '@/server/authz/policy';
 import { getActiveAcademicYear } from '@/server/services/academic-year';
@@ -75,6 +75,24 @@ export async function loadAccessScope(
         )
     : [];
 
+  let advisorProgramIds: string[] = [];
+  let advisorChapterIds: string[] = [];
+  if (role === 'advisor_teacher') {
+    const scopeRows = await db
+      .select({ programId: advisorProgramScopes.programId })
+      .from(advisorProgramScopes)
+      .where(eq(advisorProgramScopes.userId, userId));
+    advisorProgramIds = scopeRows.map((r) => r.programId);
+
+    if (advisorProgramIds.length > 0) {
+      const chapterRowsForAdvisor = await db
+        .select({ id: chapters.id })
+        .from(chapters)
+        .where(inArray(chapters.programId, advisorProgramIds));
+      advisorChapterIds = chapterRowsForAdvisor.map((r) => r.id);
+    }
+  }
+
   return {
     userId,
     role,
@@ -85,6 +103,8 @@ export async function loadAccessScope(
     teamLeaderGroupIds: groupRows
       .filter((r) => r.role === 'student' && r.isTeamLeader)
       .map((r) => r.groupId),
+    advisorProgramIds,
+    advisorChapterIds,
   };
 }
 

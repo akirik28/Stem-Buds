@@ -50,6 +50,20 @@
       "when": 1786190337605,
       "tag": "0006_add_late_attendance_status",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786193422934,
+      "tag": "0007_add_advisor_teacher_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786193895053,
+      "tag": "0008_add_milestone_created_by",
+      "breakpoints": true
     }
   ]
 }

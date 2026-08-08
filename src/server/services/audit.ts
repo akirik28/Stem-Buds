@@ -36,8 +36,13 @@ export const AUDIT_ACTIONS = {
   homeworkStatusEdited: 'homework.status_edited',
   weeklyRecordApproved: 'weekly_record.approved',
   weeklyRecordEdited: 'weekly_record.edited',
+  projectCreated: 'project.created',
   projectUpdated: 'project.updated',
   projectStatusEdited: 'project.status_edited',
+  milestoneCreated: 'milestone.created',
+  milestoneStatusChanged: 'milestone.status_changed',
+  milestoneDeleted: 'milestone.deleted',
+  homeworkAssignmentDeleted: 'homework.assignment_deleted',
   complaintStatusChanged: 'complaint.status_changed',
   newsPublished: 'news.published',
   newsUnpublished: 'news.unpublished',
@@ -47,6 +52,7 @@ export const AUDIT_ACTIONS = {
   programThresholdsChanged: 'program.thresholds_changed',
   academicYearActivated: 'academic_year.activated',
   bootstrapExecutiveCreated: 'bootstrap.executive_created',
+  advisorProgramsChanged: 'advisor.programs_changed',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

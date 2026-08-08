@@ -9,6 +9,7 @@ import {
   deactivateUser,
   reactivateUser,
   resetTemporaryPassword,
+  setAdvisorProgramScopes,
 } from '@/server/services/user-admin';
 import { toUserMessage } from '@/server/errors';
 
@@ -26,6 +27,7 @@ export async function createUserAction(_state: ActionState, formData: FormData):
   const role = String(formData.get('role') ?? '') as UserRole;
   const chapterId = String(formData.get('chapterId') ?? '') || null;
   const academicYearId = context.academicYearId;
+  const programIds = formData.getAll('programIds').map(String);
 
   try {
     const created = await createUser({
@@ -35,6 +37,7 @@ export async function createUserAction(_state: ActionState, formData: FormData):
       notificationEmail: String(formData.get('notificationEmail') ?? '') || null,
       chapterId,
       academicYearId,
+      programIds,
       actor: { id: context.user.id, name: context.user.fullName },
     });
     revalidatePath('/panel/kullanicilar');
@@ -99,6 +102,26 @@ export async function changeRoleAction(targetUserId: string, newRole: UserRole):
     });
     revalidatePath('/panel/kullanicilar');
     return { success: 'Rol güncellendi.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function updateAdvisorProgramsAction(
+  targetUserId: string,
+  programIds: string[],
+): Promise<ActionState> {
+  const context = await requireAuthContext();
+  assertPermission(canManageAccounts(context.scope));
+
+  try {
+    await setAdvisorProgramScopes({
+      userId: targetUserId,
+      programIds,
+      actor: { id: context.user.id, name: context.user.fullName },
+    });
+    revalidatePath('/panel/kullanicilar');
+    return { success: 'Programlar güncellendi.' };
   } catch (error) {
     return { error: toUserMessage(error) };
   }

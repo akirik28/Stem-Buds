@@ -4,6 +4,7 @@ import {
   canManageProgramSettings,
   canViewAuditLog,
   canViewManagementFeed,
+  isAdvisorTeacher,
   isExecutive,
   isMentor,
   isStudent,
@@ -37,7 +38,7 @@ export function buildNavigation(scope: AccessScope): NavItem[] {
 
   items.push({ href: '/panel/projeler', label: 'Projeler' });
 
-  if (!isStudent(scope.role)) {
+  if (!isStudent(scope.role) && !isAdvisorTeacher(scope.role)) {
     items.push({ href: '/panel/mesajlar', label: 'Mesajlar' });
   }
 

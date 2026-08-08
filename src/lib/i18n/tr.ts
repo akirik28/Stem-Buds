@@ -12,6 +12,7 @@ export const roleLabels = {
   chapter_head: 'Chapter Head',
   mentor: 'Mentor',
   student: 'Öğrenci',
+  advisor_teacher: 'Danışman Öğretmen',
 } as const;
 
 export const roleDescriptions = {
@@ -20,6 +21,7 @@ export const roleDescriptions = {
   chapter_head: 'Sorumlu olduğu chapter’ın operasyonel verileri',
   mentor: 'Atandığı grupların verileri',
   student: 'Kendi grubu, ödevi ve katılım geçmişi',
+  advisor_teacher: 'Atandığı program(lar)ın verilerini salt okunur görüntüler',
 } as const;
 
 export const attendanceLabels = {
