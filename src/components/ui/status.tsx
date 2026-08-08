@@ -48,6 +48,7 @@ export const projectHealthTones = {
 
 export const attendanceTones = {
   present: 'ok',
+  late: 'warn',
   absent: 'danger',
   excused: 'warn',
 } as const satisfies Record<string, StatusTone>;

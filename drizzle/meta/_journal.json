@@ -43,6 +43,13 @@
       "when": 1786188352360,
       "tag": "0005_group_mentor_and_channels",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786190337605,
+      "tag": "0006_add_late_attendance_status",
+      "breakpoints": true
     }
   ]
 }

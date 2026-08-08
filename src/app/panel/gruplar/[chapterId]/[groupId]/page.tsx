@@ -2,14 +2,18 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { requireAuthContext } from '@/server/auth/context';
-import { canManageChapter, canViewGroup } from '@/server/authz/policy';
+import { canFinalizeWeeklyRecord, canManageChapter, canViewGroup } from '@/server/authz/policy';
 import { getChapterById, listChapterMembers } from '@/server/services/chapter-service';
 import { getGroupById, listGroupMembers } from '@/server/services/group-service';
+import { listWeeklySessionsByGroup } from '@/server/services/weekly-session-service';
 import { Card, CardTitle, EmptyState } from '@/components/ui/card';
 import { StatusPill } from '@/components/ui/status';
+import { formatShortDateTr } from '@/lib/format';
+import { weeklySessionStateLabels } from '@/lib/i18n/tr';
 import { AddMemberForm } from './add-member-form';
 import { AssignMentorForm } from './assign-mentor-form';
 import { getMentorCardState } from './mentor-card-state';
+import { GenerateSessionsButton } from './oturumlar/generate-sessions-button';
 import { MemberRow } from './member-row';
 
 export const metadata: Metadata = {
@@ -53,6 +57,9 @@ export default async function GroupDetailPage({
     hasMentor: Boolean(currentMentor),
     alternativeCandidateCount: mentorCandidates.length,
   });
+
+  const sessions = await listWeeklySessionsByGroup(group.id);
+  const canFinalizeSessions = canFinalizeWeeklyRecord(context.scope, group.id, chapter.id);
 
   return (
     <div className="space-y-6">
@@ -107,6 +114,38 @@ export default async function GroupDetailPage({
           )}
         </Card>
       ) : null}
+
+      <Card>
+        <div className="flex items-center justify-between">
+          <CardTitle>Haftalık Çalışmalar</CardTitle>
+          {canFinalizeSessions ? (
+            <GenerateSessionsButton chapterId={chapter.id} groupId={group.id} />
+          ) : null}
+        </div>
+        {sessions.length === 0 ? (
+          <p className="mt-3 text-sm text-navy-500">
+            Henüz oturum oluşturulmadı. {canFinalizeSessions ? '"Oturumları Oluştur" ile başlayın.' : ''}
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-navy-100">
+            {sessions.map((session) => (
+              <li key={session.id}>
+                <Link
+                  href={`/panel/gruplar/${chapter.id}/${group.id}/oturumlar/${session.id}`}
+                  className="flex items-center justify-between py-2.5 text-sm hover:text-navy-900"
+                >
+                  <span className="text-navy-700">
+                    {session.weekNumber}. Hafta — {formatShortDateTr(session.scheduledStartAt)}
+                  </span>
+                  <StatusPill tone={session.state === 'scheduled' ? 'info' : 'neutral'}>
+                    {weeklySessionStateLabels[session.state]}
+                  </StatusPill>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       <Card>
         <CardTitle>Üyeler ({members.length})</CardTitle>

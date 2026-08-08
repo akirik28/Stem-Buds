@@ -24,12 +24,14 @@ export const roleDescriptions = {
 
 export const attendanceLabels = {
   present: 'Katıldı',
+  late: 'Geç Katıldı',
   absent: 'Katılmadı',
   excused: 'Mazeretli',
 } as const;
 
 export const attendanceIcons = {
   present: '✅',
+  late: '🕗',
   absent: '❌',
   excused: '🟡',
 } as const;

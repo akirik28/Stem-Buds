@@ -21,7 +21,12 @@ export const userRoleEnum = pgEnum('user_role', [
 export const groupRoleEnum = pgEnum('group_role', ['mentor', 'student']);
 
 /** Official attendance outcome for one student in one weekly session. */
-export const attendanceStatusEnum = pgEnum('attendance_status', ['present', 'absent', 'excused']);
+export const attendanceStatusEnum = pgEnum('attendance_status', [
+  'present',
+  'late',
+  'absent',
+  'excused',
+]);
 
 /** Official completion outcome of one homework assignment for one student. */
 export const homeworkStatusEnum = pgEnum('homework_status', [
