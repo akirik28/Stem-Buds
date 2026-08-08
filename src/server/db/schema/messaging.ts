@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
   index,
@@ -28,7 +28,12 @@ export const channels = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     type: channelTypeEnum('type').notNull(),
-    /** Set only for `chapter_mentors` channels. */
+    /**
+     * Set for `chapter_mentors` channels, and also denormalized onto
+     * `group` channels from the Group's own chapter (so a chapter-scoped
+     * authorization/moderation check never needs an extra join to the
+     * `groups` table). Always null for the two org-wide singleton types.
+     */
     chapterId: uuid('chapter_id').references(() => chapters.id, { onDelete: 'cascade' }),
     /** Set only for `group` channels. */
     groupId: uuid('group_id').references(() => groups.id, { onDelete: 'cascade' }),
@@ -38,9 +43,14 @@ export const channels = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    // At most one presidency channel and one chapter-management channel;
-    // at most one mentor channel per chapter.
-    uniqueIndex('channels_type_chapter_unique').on(table.type, table.chapterId),
+    // At most one presidency channel and one chapter-management channel
+    // (both org-wide singletons, chapterId always null on these rows).
+    uniqueIndex('channels_org_singleton_unique').on(table.type).where(sql`${table.type} in ('presidency', 'chapter_management')`),
+    // At most one mentor channel per chapter. Deliberately scoped to
+    // `chapter_mentors` only — a plain unique index on (type, chapterId)
+    // would also apply to `group` rows (which denormalize chapterId too),
+    // wrongly capping every chapter to a single Group channel.
+    uniqueIndex('channels_chapter_mentors_unique').on(table.chapterId).where(sql`${table.type} = 'chapter_mentors'`),
     // At most one channel per group.
     uniqueIndex('channels_type_group_unique').on(table.type, table.groupId),
     index('channels_chapter_idx').on(table.chapterId),

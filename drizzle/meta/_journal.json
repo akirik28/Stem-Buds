@@ -71,6 +71,13 @@
       "when": 1786207801742,
       "tag": "0009_phase5_alerts_and_ai_insights",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786213917896,
+      "tag": "0010_phase7_fix_channel_indexes",
+      "breakpoints": true
     }
   ]
 }
