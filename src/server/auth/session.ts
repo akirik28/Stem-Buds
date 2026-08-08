@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { and, eq, gt, lt, ne } from 'drizzle-orm';
+import { and, eq, gt, lt } from 'drizzle-orm';
 import { getDb } from '@/server/db';
 import { sessions, users } from '@/server/db/schema';
 import { getEnv } from '@/server/env';
@@ -144,19 +144,6 @@ export async function destroySession(sessionId: string): Promise<void> {
 /** Invalidates every session of a user — used after an administrative reset. */
 export async function destroyAllSessionsForUser(userId: string): Promise<void> {
   await getDb().delete(sessions).where(eq(sessions.userId, userId));
-}
-
-/**
- * Invalidates every session of a user except the one making the request, so a
- * password change signs other devices out without signing the caller out here.
- */
-export async function destroyOtherSessionsForUser(
-  userId: string,
-  keepSessionId: string,
-): Promise<void> {
-  await getDb()
-    .delete(sessions)
-    .where(and(eq(sessions.userId, userId), ne(sessions.id, keepSessionId)));
 }
 
 /** Housekeeping for the scheduled job runner. */

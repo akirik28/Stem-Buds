@@ -88,10 +88,25 @@ export async function loadAccessScope(
   };
 }
 
-/** Throws `unauthenticated` when nobody is signed in. */
-export async function requireAuthContext(): Promise<AuthContext> {
+/**
+ * Throws `unauthenticated` when nobody is signed in, and — unless explicitly
+ * opted out — `forbidden` when the account still carries a temporary password.
+ *
+ * The forced first-login change is otherwise only enforced by a page redirect
+ * (`/panel/layout.tsx`); this is the server-side backstop so a mutation
+ * invoked directly (a server action, a future API route) can never run for an
+ * account that has not replaced its temporary password yet. The password
+ * change flow itself reads the session directly via `getAuthContext` and
+ * never goes through this guard, so it is never self-blocking.
+ */
+export async function requireAuthContext(
+  options: { allowPendingPasswordChange?: boolean } = {},
+): Promise<AuthContext> {
   const context = await getAuthContext();
   if (!context) throw unauthenticated();
+  if (context.user.mustChangePassword && !options.allowPendingPasswordChange) {
+    throw forbidden('Devam etmeden önce geçici şifreni değiştirmen gerekiyor.');
+  }
   return context;
 }
 

@@ -54,7 +54,7 @@ export async function changePasswordAction(
   if (!context) redirect('/giris');
 
   try {
-    await changeOwnPassword({
+    const result = await changeOwnPassword({
       userId: context.user.id,
       currentSessionId: context.sessionId,
       currentPassword: context.user.mustChangePassword
@@ -63,6 +63,11 @@ export async function changePasswordAction(
       newPassword: String(formData.get('newPassword') ?? ''),
       newPasswordRepeat: String(formData.get('newPasswordRepeat') ?? ''),
     });
+
+    // The old session (this one included) was invalidated; the browser needs
+    // the freshly rotated cookie or the very next request would be logged out.
+    const cookieStore = await cookies();
+    cookieStore.set(sessionCookieName(), result.sessionToken, sessionCookieOptions());
   } catch (error) {
     return { error: toUserMessage(error) };
   }

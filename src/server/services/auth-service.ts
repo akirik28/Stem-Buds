@@ -9,7 +9,7 @@ import {
   verifyPassword,
   type PasswordPolicyFailure,
 } from '@/server/auth/password';
-import { createSession, destroyOtherSessionsForUser } from '@/server/auth/session';
+import { createSession, destroyAllSessionsForUser } from '@/server/auth/session';
 import { consumeRateLimit, resetRateLimit } from './rate-limit';
 import { AUDIT_ACTIONS, recordAudit } from './audit';
 
@@ -133,13 +133,25 @@ export type ChangePasswordInput = {
   newPasswordRepeat: string;
 };
 
+export type ChangePasswordResult = {
+  /** A freshly issued session token the caller must set as the new cookie. */
+  sessionToken: string;
+};
+
 /**
  * Replaces the caller's own password.
  *
  * `currentPassword` is required unless the user is still on the temporary
  * password issued to them, which they have just proven by signing in.
+ *
+ * Every existing session — including the one making this request — is
+ * invalidated and replaced with a freshly issued one. Rotating the current
+ * session too (rather than only signing out other devices) closes a session
+ * fixation window around the password change itself.
  */
-export async function changeOwnPassword(input: ChangePasswordInput): Promise<void> {
+export async function changeOwnPassword(
+  input: ChangePasswordInput,
+): Promise<ChangePasswordResult> {
   if (input.newPassword !== input.newPasswordRepeat) {
     throw validationError(messages.auth.passwordsDoNotMatch);
   }
@@ -189,5 +201,9 @@ export async function changeOwnPassword(input: ChangePasswordInput): Promise<voi
     );
   });
 
-  await destroyOtherSessionsForUser(user.id, input.currentSessionId);
+  // Rotate: every session — including the one making this request — is
+  // invalidated, then the caller is issued a brand new one.
+  await destroyAllSessionsForUser(user.id);
+  const sessionToken = await createSession(user.id);
+  return { sessionToken };
 }

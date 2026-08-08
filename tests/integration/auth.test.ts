@@ -139,7 +139,7 @@ describe('first login and forced password change', () => {
     expect(second.mustChangePassword).toBe(false);
   });
 
-  it('keeps the current session and drops the others after a password change', async () => {
+  it('rotates every session — including the current one — after a password change', async () => {
     const created = await createStudentAccount();
     const first = await login({
       username: 'ogrenci.deneme',
@@ -155,7 +155,7 @@ describe('first login and forced password change', () => {
     });
 
     const keep = await validateSessionToken(second.sessionToken);
-    await changeOwnPassword({
+    const result = await changeOwnPassword({
       userId: created.userId,
       currentSessionId: keep!.sessionId,
       currentPassword: null,
@@ -163,8 +163,15 @@ describe('first login and forced password change', () => {
       newPasswordRepeat: 'YeniSifre2026',
     });
 
-    expect(await validateSessionToken(second.sessionToken)).not.toBeNull();
+    // Both the other device and the original token for *this* device are
+    // invalidated — the caller is expected to switch to the freshly issued one.
     expect(await validateSessionToken(first.sessionToken)).toBeNull();
+    expect(await validateSessionToken(second.sessionToken)).toBeNull();
+
+    const rotated = await validateSessionToken(result.sessionToken);
+    expect(rotated).not.toBeNull();
+    expect(rotated?.user.username).toBe('ogrenci.deneme');
+    expect(rotated?.sessionId).not.toBe(keep!.sessionId);
   });
 
   it('refuses a new password that repeats the old one', async () => {
