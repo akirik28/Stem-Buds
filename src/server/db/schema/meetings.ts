@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
   date,
@@ -12,21 +12,30 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from './auth';
 import { academicYears, chapters } from './org';
+import { programs } from './programs';
 import { meetingAttendanceEnum } from './enums';
 
-/** A Chapter Head ↔ mentor meeting for one chapter. */
+/**
+ * A meeting is either **chapter-scoped** (`chapterId` set, `programId`
+ * null — a Chapter Head ↔ mentor meeting for that one chapter, the
+ * original shape) or **Program-scoped** (`programId` set, `chapterId`
+ * null — Regional Director/Vice President meeting with hand-picked
+ * participants across a whole Program, never mixing BİLSEM and Online
+ * Ortaokul in the same meeting). Application code enforces "exactly one
+ * of the two", not a DB constraint — consistent with this codebase's
+ * existing preference for app-level cross-field validation.
+ */
 export const mentorMeetings = pgTable(
   'mentor_meetings',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    chapterId: uuid('chapter_id')
-      .notNull()
-      .references(() => chapters.id, { onDelete: 'cascade' }),
+    chapterId: uuid('chapter_id').references(() => chapters.id, { onDelete: 'cascade' }),
+    programId: uuid('program_id').references(() => programs.id, { onDelete: 'cascade' }),
     academicYearId: uuid('academic_year_id')
       .notNull()
       .references(() => academicYears.id, { onDelete: 'restrict' }),
 
-    /** Sequence within the chapter/year, e.g. "Mentor Toplantısı #4". */
+    /** Sequence within the chapter-or-program/year, e.g. "Mentor Toplantısı #4". */
     sequence: text('sequence').notNull(),
     title: varchar('title', { length: 200 }).notNull(),
     startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
@@ -45,11 +54,20 @@ export const mentorMeetings = pgTable(
   },
   (table) => [
     index('mentor_meetings_chapter_idx').on(table.chapterId, table.startsAt),
+    index('mentor_meetings_program_idx').on(table.programId, table.startsAt),
     uniqueIndex('mentor_meetings_chapter_year_sequence_unique').on(
       table.chapterId,
       table.academicYearId,
       table.sequence,
     ),
+    // Partial, not a plain (programId, academicYearId, sequence) index:
+    // Postgres never treats two NULLs as equal, so a plain index here would
+    // silently fail to deduplicate sequence numbers among Program-scoped
+    // rows (which all share chapterId = NULL) — the same class of bug fixed
+    // in migration 0010 for `channels`.
+    uniqueIndex('mentor_meetings_program_year_sequence_unique')
+      .on(table.programId, table.academicYearId, table.sequence)
+      .where(sql`${table.programId} is not null`),
   ],
 );
 
@@ -92,6 +110,7 @@ export const meetingActionItems = pgTable(
 
 export const mentorMeetingsRelations = relations(mentorMeetings, ({ one, many }) => ({
   chapter: one(chapters, { fields: [mentorMeetings.chapterId], references: [chapters.id] }),
+  program: one(programs, { fields: [mentorMeetings.programId], references: [programs.id] }),
   attendance: many(mentorMeetingAttendance),
   actionItems: many(meetingActionItems),
 }));

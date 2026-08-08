@@ -5,6 +5,7 @@ import {
   canViewAuditLog,
   canViewManagementFeed,
   isAdvisorTeacher,
+  isChapterHead,
   isExecutive,
   isMentor,
   isStudent,
@@ -22,7 +23,10 @@ export type NavItem = {
  * re-checks authorization on the server.
  */
 export function buildNavigation(scope: AccessScope): NavItem[] {
-  const items: NavItem[] = [{ href: '/panel', label: 'Panelim' }];
+  const items: NavItem[] = [
+    { href: '/panel', label: 'Panelim' },
+    { href: '/panel/bildirimler', label: 'Bildirimler' },
+  ];
 
   if (canViewManagementFeed(scope)) {
     items.push({ href: '/panel/yonetim-akisi', label: 'Yönetim Akışı' });
@@ -30,6 +34,10 @@ export function buildNavigation(scope: AccessScope): NavItem[] {
 
   if (isMentor(scope.role)) {
     items.push({ href: '/panel/dikkat-gerektirenler', label: 'Dikkat Gerektirenler' });
+  }
+
+  if (isChapterHead(scope.role) || isMentor(scope.role) || isExecutive(scope.role)) {
+    items.push({ href: '/panel/toplantilar', label: 'Mentor Toplantıları' });
   }
 
   if (isAdvisorTeacher(scope.role)) {

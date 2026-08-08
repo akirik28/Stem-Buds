@@ -78,6 +78,13 @@
       "when": 1786213917896,
       "tag": "0010_phase7_fix_channel_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786224488934,
+      "tag": "0011_phase9_program_scoped_meetings",
+      "breakpoints": true
     }
   ]
 }

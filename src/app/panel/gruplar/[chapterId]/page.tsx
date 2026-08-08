@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { requireAuthContext } from '@/server/auth/context';
-import { canManageChapter, canViewChapter } from '@/server/authz/policy';
+import { canExportChapter, canManageChapter, canViewChapter } from '@/server/authz/policy';
 import { getChapterById } from '@/server/services/chapter-service';
 import { listGroupsByChapter } from '@/server/services/group-service';
 import { Card, CardTitle, EmptyState } from '@/components/ui/card';
@@ -48,13 +48,23 @@ export default async function ChapterGroupsPage({
           <h1 className="mt-1 text-2xl font-semibold text-navy-900">{chapter.name}</h1>
           <p className="text-sm text-navy-500">{chapter.code}</p>
         </div>
-        {canManage ? (
-          <ChapterLifecycleControls
-            chapterId={chapter.id}
-            isActive={chapter.isActive}
-            isEmpty={groups.length === 0}
-          />
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {canExportChapter(context.scope, chapter.id) ? (
+            <a
+              href={`/api/export/chapter/${chapter.id}`}
+              className="inline-flex min-h-9 items-center rounded-lg bg-white px-3.5 text-sm font-medium text-navy-700 ring-1 ring-inset ring-navy-200 hover:bg-navy-50"
+            >
+              Excel’e Aktar
+            </a>
+          ) : null}
+          {canManage ? (
+            <ChapterLifecycleControls
+              chapterId={chapter.id}
+              isActive={chapter.isActive}
+              isEmpty={groups.length === 0}
+            />
+          ) : null}
+        </div>
       </div>
 
       {canManage ? (

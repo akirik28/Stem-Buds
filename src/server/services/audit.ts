@@ -56,6 +56,7 @@ export const AUDIT_ACTIONS = {
   continuousFeedbackReviewed: 'feedback.reviewed',
   feedbackCycleResponded: 'feedback_cycle.responded',
   messageDeleted: 'message.deleted',
+  mentorMeetingCreated: 'mentor_meeting.created',
   newsPublished: 'news.published',
   newsUnpublished: 'news.unpublished',
   leadershipPublished: 'leadership.published',

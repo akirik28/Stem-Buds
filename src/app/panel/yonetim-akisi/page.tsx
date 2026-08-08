@@ -96,13 +96,23 @@ export default async function ManagementFeedPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-navy-900">Yönetim Akışı</h1>
-        <p className="mt-1 text-sm text-navy-500">
-          {kpis.openAlertCount > 0
-            ? `Şu anda ${kpis.openAlertCount} konu dikkat gerektiriyor.`
-            : 'Şu anda dikkat gerektiren bir konu bulunmuyor.'}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-navy-900">Yönetim Akışı</h1>
+          <p className="mt-1 text-sm text-navy-500">
+            {kpis.openAlertCount > 0
+              ? `Şu anda ${kpis.openAlertCount} konu dikkat gerektiriyor.`
+              : 'Şu anda dikkat gerektiren bir konu bulunmuyor.'}
+          </p>
+        </div>
+        {isExecutive(context.scope.role) ? (
+          <a
+            href="/api/export/organization"
+            className="inline-flex min-h-9 items-center rounded-lg bg-white px-3.5 text-sm font-medium text-navy-700 ring-1 ring-inset ring-navy-200 hover:bg-navy-50"
+          >
+            Excel’e Aktar (Tüm Organizasyon)
+          </a>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">

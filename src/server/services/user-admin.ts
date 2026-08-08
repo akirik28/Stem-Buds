@@ -6,6 +6,8 @@ import { destroyAllSessionsForUser } from '@/server/auth/session';
 import { generateTemporaryPassword, hashPassword } from '@/server/auth/password';
 import { EXECUTIVE_ROLES, isExecutive, type UserRole } from '@/server/authz/policy';
 import { AUDIT_ACTIONS, recordAudit } from './audit';
+import { sendEmail } from './email-service';
+import type { EmailProvider } from '@/server/email/provider';
 
 /**
  * Account administration.
@@ -25,6 +27,8 @@ export type CreateUserInput = {
   /** Only meaningful for `advisor_teacher` — which Program(s) they may observe. */
   programIds?: string[];
   actor: { id: string | null; name: string };
+  /** Injected only by tests; production always uses the env-selected e-mail provider. */
+  emailProvider?: EmailProvider;
 };
 
 export type CreatedUser = {
@@ -124,6 +128,29 @@ export async function createUser(input: CreateUserInput): Promise<CreatedUser> {
 
     return created.id;
   });
+
+  // Never the temporary password itself — see this file's own doc comment:
+  // it is returned to the caller exactly once and never e-mailed. Best-
+  // effort only: a delivery problem must never fail account creation, which
+  // has already committed by this point.
+  const notificationEmail = input.notificationEmail?.trim();
+  if (notificationEmail) {
+    try {
+      await sendEmail({
+        idempotencyKey: `welcome:${userId}`,
+        template: 'welcome',
+        recipientEmail: notificationEmail,
+        recipientUserId: userId,
+        subject: 'STEM & BUDS hesabınız oluşturuldu',
+        body: `Merhaba ${fullName},\n\nSTEM & BUDS platformunda sizin için bir hesap oluşturuldu. Kullanıcı adınız: ${username}\n\nGiriş bilgilerinizi yöneticinizden öğrenebilirsiniz.`,
+        relatedEntityType: 'user',
+        relatedEntityId: userId,
+        provider: input.emailProvider,
+      });
+    } catch {
+      // Swallowed deliberately: see comment above.
+    }
+  }
 
   return { userId, username, temporaryPassword };
 }

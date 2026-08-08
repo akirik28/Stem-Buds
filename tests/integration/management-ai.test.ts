@@ -276,7 +276,22 @@ describe('getAdvisorGroupSummaryInsight — ADVISOR_TEACHER only, authorized Pro
   it('never sends student names, emails, or full user objects to the provider', async () => {
     const advisor = await createUser({ username: 'advisor.online', fullName: 'Advisor Online', role: 'advisor_teacher', programIds: [onlineProgramId], actor });
     const scope = await loadAccessScope(advisor.userId, 'advisor_teacher', academicYearId);
-    const student = await createUser({ username: 'gizli.ogrenci', fullName: 'Gizli Öğrenci', role: 'student', chapterId, academicYearId, actor, notificationEmail: 'gizli@example.com' });
+    // `emailProvider` here is not about e-mail at all — it only stops this
+    // test's incidental `notificationEmail` from reaching the real
+    // env-selected provider (this process's `.env.local` has a live SMTP
+    // transport configured). See notification-service.test.ts's
+    // `FakeEmailProvider` doc comment for the full story.
+    const noopEmailProvider = { name: 'noop', send: async () => ({ delivered: true as const }) };
+    const student = await createUser({
+      username: 'gizli.ogrenci',
+      fullName: 'Gizli Öğrenci',
+      role: 'student',
+      chapterId,
+      academicYearId,
+      actor,
+      notificationEmail: 'gizli@example.com',
+      emailProvider: noopEmailProvider,
+    });
     const { addGroupMember } = await import('@/server/services/group-service');
     await addGroupMember({ groupId, userId: student.userId, role: 'student', actor });
 
