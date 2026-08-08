@@ -1,0 +1,30 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+
+# environment / secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# test artifacts
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# local storage for private uploads (development only)
+storage/
+
+# os / editor
+.DS_Store
+*.log
+npm-debug.log*
+.idea/
+.vscode/
+*.tsbuildinfo
+next-env.d.ts
