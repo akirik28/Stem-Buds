@@ -1,9 +1,10 @@
-import { eq, inArray, sql } from 'drizzle-orm';
+import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { getDb, type Database } from '@/server/db';
 import { chapterMemberships, profiles, users } from '@/server/db/schema';
-import { conflict, validationError } from '@/server/errors';
+import { conflict, notFound, validationError } from '@/server/errors';
+import { destroyAllSessionsForUser } from '@/server/auth/session';
 import { generateTemporaryPassword, hashPassword } from '@/server/auth/password';
-import { EXECUTIVE_ROLES, type UserRole } from '@/server/authz/policy';
+import { EXECUTIVE_ROLES, isExecutive, type UserRole } from '@/server/authz/policy';
 import { AUDIT_ACTIONS, recordAudit } from './audit';
 
 /**
@@ -164,4 +165,130 @@ export async function executiveExists(db: Database = getDb()): Promise<boolean> 
     .where(inArray(users.role, [...EXECUTIVE_ROLES]))
     .limit(1);
   return rows.length > 0;
+}
+
+export type ListedUser = typeof users.$inferSelect;
+
+export async function listUsers(filter: { role?: UserRole } = {}): Promise<ListedUser[]> {
+  const db = getDb();
+  const query = db.select().from(users).orderBy(desc(users.createdAt));
+  if (filter.role) {
+    return query.where(eq(users.role, filter.role));
+  }
+  return query;
+}
+
+export async function getUserById(id: string): Promise<ListedUser | null> {
+  const [row] = await getDb().select().from(users).where(eq(users.id, id)).limit(1);
+  return row ?? null;
+}
+
+/**
+ * Deactivates an account: it can no longer sign in, every existing session is
+ * revoked immediately, and its history (attendance, audit trail, ...) is kept.
+ */
+export async function deactivateUser(input: {
+  targetUserId: string;
+  actor: { id: string | null; name: string };
+}): Promise<void> {
+  const db = getDb();
+  const [target] = await db.select().from(users).where(eq(users.id, input.targetUserId)).limit(1);
+  if (!target) throw notFound('Kullanıcı bulunamadı.');
+  if (target.id === input.actor.id) {
+    throw validationError('Kendi hesabınızı pasifleştiremezsiniz.');
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(users)
+      .set({ isActive: false, deactivatedAt: new Date(), updatedAt: new Date() })
+      .where(eq(users.id, target.id));
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.userDeactivated,
+        targetType: 'user',
+        targetId: target.id,
+        targetLabel: target.username,
+      },
+      tx,
+    );
+  });
+
+  await destroyAllSessionsForUser(target.id);
+}
+
+export async function reactivateUser(input: {
+  targetUserId: string;
+  actor: { id: string | null; name: string };
+}): Promise<void> {
+  await getDb().transaction(async (tx) => {
+    const [target] = await tx.select().from(users).where(eq(users.id, input.targetUserId)).limit(1);
+    if (!target) throw notFound('Kullanıcı bulunamadı.');
+
+    await tx
+      .update(users)
+      .set({ isActive: true, deactivatedAt: null, updatedAt: new Date() })
+      .where(eq(users.id, target.id));
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.userReactivated,
+        targetType: 'user',
+        targetId: target.id,
+        targetLabel: target.username,
+      },
+      tx,
+    );
+  });
+}
+
+/**
+ * Changes a user's platform-wide role.
+ *
+ * A Chapter Head must never be able to promote anyone into an executive
+ * role — enforced by the caller via `canAssignRole`, and defensively here too:
+ * this function is only ever reachable from an executive-only server action.
+ */
+export async function changeUserRole(input: {
+  targetUserId: string;
+  newRole: UserRole;
+  actor: { id: string | null; name: string; role: UserRole };
+}): Promise<void> {
+  if (isExecutive(input.newRole) && !isExecutive(input.actor.role)) {
+    throw validationError('Yalnızca üst yönetim, bir hesabı üst yönetim rolüne atayabilir.');
+  }
+
+  await getDb().transaction(async (tx) => {
+    const [target] = await tx.select().from(users).where(eq(users.id, input.targetUserId)).limit(1);
+    if (!target) throw notFound('Kullanıcı bulunamadı.');
+
+    await tx
+      .update(users)
+      .set({ role: input.newRole, updatedAt: new Date() })
+      .where(eq(users.id, target.id));
+
+    // Chapter/group memberships recorded under the previous role are left as
+    // history; an operator re-assigns chapter/group scope separately when a
+    // role change also changes what the person should have access to.
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.userRoleChanged,
+        targetType: 'user',
+        targetId: target.id,
+        targetLabel: target.username,
+        before: { role: target.role },
+        after: { role: input.newRole },
+      },
+      tx,
+    );
+  });
+
+  await destroyAllSessionsForUser(input.targetUserId);
 }
