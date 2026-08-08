@@ -1,6 +1,6 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import { getDb } from '@/server/db';
-import { chapters } from '@/server/db/schema';
+import { chapterMemberships, chapters, users } from '@/server/db/schema';
 import { conflict, notFound, validationError } from '@/server/errors';
 import { AUDIT_ACTIONS, recordAudit } from './audit';
 
@@ -173,4 +173,38 @@ export async function publishChapter(input: PublishChapterInput): Promise<Chapte
 
     return updated;
   });
+}
+
+export type ChapterMember = {
+  id: string;
+  username: string;
+  fullName: string;
+  role: 'mentor' | 'student';
+};
+
+/**
+ * Mentors and students who belong to a chapter (for the current academic
+ * year), used to populate "add member" pickers on the chapter's groups —
+ * only people already provisioned into the chapter can be added to one of
+ * its groups.
+ */
+export async function listChapterMembers(
+  chapterId: string,
+  academicYearId: string,
+): Promise<ChapterMember[]> {
+  const rows = await getDb()
+    .select({ id: users.id, username: users.username, fullName: users.fullName, role: users.role })
+    .from(chapterMemberships)
+    .innerJoin(users, eq(users.id, chapterMemberships.userId))
+    .where(
+      and(
+        eq(chapterMemberships.chapterId, chapterId),
+        eq(chapterMemberships.academicYearId, academicYearId),
+        eq(chapterMemberships.isActive, true),
+        inArray(chapterMemberships.role, ['mentor', 'student']),
+      ),
+    )
+    .orderBy(users.fullName);
+
+  return rows.map((row) => ({ ...row, role: row.role as 'mentor' | 'student' }));
 }

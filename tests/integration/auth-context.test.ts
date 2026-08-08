@@ -106,7 +106,7 @@ describe('requireAuthContext — negative cases', () => {
     const created = await createUser({
       username: 'gecici.hesap2',
       fullName: 'Geçici Hesap',
-      role: 'co_director',
+      role: 'regional_director',
       actor,
     });
     const result = await login({

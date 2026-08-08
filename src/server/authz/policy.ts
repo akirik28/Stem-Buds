@@ -24,11 +24,7 @@ export type AccessScope = {
   teamLeaderGroupIds: readonly string[];
 };
 
-export const EXECUTIVE_ROLES: readonly UserRole[] = [
-  'regional_director',
-  'co_director',
-  'vice_president',
-];
+export const EXECUTIVE_ROLES: readonly UserRole[] = ['regional_director', 'vice_president'];
 
 export function isExecutive(role: UserRole): boolean {
   return EXECUTIVE_ROLES.includes(role);
@@ -168,17 +164,36 @@ export function canSeeComplaintReporter(
 }
 
 export type ChannelAccessInput = {
-  type: 'presidency' | 'chapter_management' | 'chapter_mentors';
+  type: 'presidency' | 'chapter_management' | 'chapter_mentors' | 'group';
   chapterId: string | null;
+  /** Set only for `group` channels. */
+  groupId?: string | null;
 };
 
 /**
- * Channel membership rules. Students are never members of any management
- * channel; executives have disclosed oversight access everywhere.
+ * Channel membership rules.
+ *
+ * Students are never members of any *management* channel (presidency,
+ * chapter management, chapter mentors) — but a `group` channel is the one
+ * place they do belong, alongside that specific group's assigned mentor,
+ * because it is their own group's channel, not a management structure.
+ * Regional Directors keep disclosed oversight access everywhere, including
+ * every group channel, for moderation and safeguarding.
  */
 export function canAccessChannel(scope: AccessScope, channel: ChannelAccessInput): boolean {
-  if (isStudent(scope.role)) return false;
   if (isExecutive(scope.role)) return true;
+
+  if (channel.type === 'group') {
+    if (!channel.groupId) return false;
+    if (isMentor(scope.role)) return scope.mentorGroupIds.includes(channel.groupId);
+    if (isStudent(scope.role)) return scope.studentGroupIds.includes(channel.groupId);
+    if (isChapterHead(scope.role)) {
+      return channel.chapterId !== null && scope.headChapterIds.includes(channel.chapterId);
+    }
+    return false;
+  }
+
+  if (isStudent(scope.role)) return false;
 
   if (channel.type === 'presidency') return false;
   if (channel.type === 'chapter_management') return isChapterHead(scope.role);
@@ -195,7 +210,7 @@ export function canAccessChannel(scope: AccessScope, channel: ChannelAccessInput
 /** Whether the viewer's channel membership is oversight rather than team membership. */
 export function isOversightMembership(scope: AccessScope, channel: ChannelAccessInput): boolean {
   if (!isExecutive(scope.role)) return false;
-  return channel.type === 'chapter_mentors';
+  return channel.type === 'chapter_mentors' || channel.type === 'group';
 }
 
 /** May export chapter data to Excel. */

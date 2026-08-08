@@ -148,7 +148,7 @@ describe('complaint privacy', () => {
     const aboutExecutive = { ...baseComplaint, scope: 'executive' as const, targetUserId: 'exec-1' };
     expect(canAccessComplaint(executive, aboutExecutive)).toBe(false);
 
-    const otherExecutive = scope({ userId: 'exec-2', role: 'co_director' });
+    const otherExecutive = scope({ userId: 'exec-2', role: 'regional_director' });
     expect(canAccessComplaint(otherExecutive, aboutExecutive)).toBe(true);
   });
 

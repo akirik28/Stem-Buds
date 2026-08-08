@@ -8,7 +8,6 @@
 
 export const roleLabels = {
   regional_director: 'Regional Director',
-  co_director: 'Co-Director',
   vice_president: 'Vice President',
   chapter_head: 'Chapter Head',
   mentor: 'Mentor',
@@ -17,7 +16,6 @@ export const roleLabels = {
 
 export const roleDescriptions = {
   regional_director: 'Tüm platforma erişim',
-  co_director: 'Tüm platforma erişim',
   vice_president: 'Tüm platforma erişim',
   chapter_head: 'Sorumlu olduğu chapter’ın operasyonel verileri',
   mentor: 'Atandığı grupların verileri',

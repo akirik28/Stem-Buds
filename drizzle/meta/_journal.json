@@ -29,6 +29,20 @@
       "when": 1786183842862,
       "tag": "0003_finalize_program_scoping",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786187518039,
+      "tag": "0004_remove_co_director_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786188352360,
+      "tag": "0005_group_mentor_and_channels",
+      "breakpoints": true
     }
   ]
 }

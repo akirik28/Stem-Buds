@@ -11,15 +11,17 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { users } from './auth';
-import { chapters } from './org';
+import { chapters, groups } from './org';
 import { channelTypeEnum } from './enums';
 
 /**
  * A management communication channel.
  *
- * Three kinds exist: BAŞKANLIK (executives only), CHAPTER YÖNETİMİ (executives
- * plus every Chapter Head) and one mentor channel per chapter. Students are
- * never members of any of them, and student-to-student DMs do not exist.
+ * BAŞKANLIK (executives only), CHAPTER YÖNETİMİ (executives plus every
+ * Chapter Head), one mentor channel per chapter, and one channel per Group
+ * (its assigned mentor plus that group's active students, with Regional
+ * Director oversight). Students are never members of the first three kinds,
+ * and student-to-student DMs do not exist anywhere.
  */
 export const channels = pgTable(
   'channels',
@@ -28,6 +30,8 @@ export const channels = pgTable(
     type: channelTypeEnum('type').notNull(),
     /** Set only for `chapter_mentors` channels. */
     chapterId: uuid('chapter_id').references(() => chapters.id, { onDelete: 'cascade' }),
+    /** Set only for `group` channels. */
+    groupId: uuid('group_id').references(() => groups.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 160 }).notNull(),
     description: text('description'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -37,7 +41,10 @@ export const channels = pgTable(
     // At most one presidency channel and one chapter-management channel;
     // at most one mentor channel per chapter.
     uniqueIndex('channels_type_chapter_unique').on(table.type, table.chapterId),
+    // At most one channel per group.
+    uniqueIndex('channels_type_group_unique').on(table.type, table.groupId),
     index('channels_chapter_idx').on(table.chapterId),
+    index('channels_group_idx').on(table.groupId),
   ],
 );
 
@@ -132,6 +139,7 @@ export const messageAttachments = pgTable(
 
 export const channelsRelations = relations(channels, ({ one, many }) => ({
   chapter: one(chapters, { fields: [channels.chapterId], references: [chapters.id] }),
+  group: one(groups, { fields: [channels.groupId], references: [groups.id] }),
   memberships: many(channelMemberships),
   messages: many(messages),
 }));

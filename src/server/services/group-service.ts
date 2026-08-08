@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { getDb } from '@/server/db';
-import { chapters, groupMemberships, groups, users } from '@/server/db/schema';
+import { chapterMemberships, chapters, groupMemberships, groups, users } from '@/server/db/schema';
 import { conflict, notFound, validationError } from '@/server/errors';
 import { disciplineCodes, type DisciplineKey } from '@/lib/i18n/tr';
 import type { UserRole } from '@/server/authz/policy';
@@ -134,6 +134,118 @@ export async function createGroup(input: CreateGroupInput): Promise<Group> {
     );
 
     return created;
+  });
+}
+
+export type AssignGroupMentorInput = {
+  groupId: string;
+  mentorUserId: string;
+  actor: { id: string | null; name: string };
+};
+
+/**
+ * Assigns (or replaces) a group's single authoritative mentor.
+ *
+ * ONE group has exactly one assigned mentor once operational; ONE mentor may
+ * be assigned to several groups. A group with no mentor is a draft and is
+ * never treated as operational — nothing here creates or touches sessions,
+ * attendance, homework, or messages (those belong to their own phases), so
+ * reassigning a mentor can never lose that data because none of it is
+ * scoped by mentor identity; it stays keyed to the group itself.
+ *
+ * The previous mentor's `group_memberships` row (if any) is deactivated —
+ * not deleted — so history is preserved and `AccessScope.mentorGroupIds`
+ * (what actually gates the previous mentor's access to this group's data)
+ * stops including this group immediately.
+ */
+export async function assignGroupMentor(input: AssignGroupMentorInput): Promise<Group> {
+  return getDb().transaction(async (tx) => {
+    const [group] = await tx.select().from(groups).where(eq(groups.id, input.groupId)).limit(1);
+    if (!group) throw notFound('Grup bulunamadı.');
+
+    const [mentor] = await tx.select().from(users).where(eq(users.id, input.mentorUserId)).limit(1);
+    if (!mentor) throw notFound('Kullanıcı bulunamadı.');
+    if (mentor.role !== 'mentor') {
+      throw validationError('Yalnızca Mentor rolündeki bir kullanıcı gruba atanabilir.');
+    }
+    if (!mentor.isActive) {
+      throw validationError('Pasif bir kullanıcı gruba mentor olarak atanamaz.');
+    }
+
+    const [chapterMembership] = await tx
+      .select({ id: chapterMemberships.id })
+      .from(chapterMemberships)
+      .where(
+        and(
+          eq(chapterMemberships.userId, mentor.id),
+          eq(chapterMemberships.chapterId, group.chapterId),
+          eq(chapterMemberships.academicYearId, group.academicYearId),
+          eq(chapterMemberships.isActive, true),
+        ),
+      )
+      .limit(1);
+    if (!chapterMembership) {
+      throw validationError('Mentor, bu grubun bağlı olduğu chapter’a atanmış olmalıdır.');
+    }
+
+    if (group.mentorUserId === mentor.id) {
+      return group; // Already the assigned mentor — idempotent no-op.
+    }
+
+    const previousMentorId = group.mentorUserId;
+
+    if (previousMentorId) {
+      await tx
+        .update(groupMemberships)
+        .set({ isActive: false, leftAt: new Date(), updatedAt: new Date() })
+        .where(
+          and(
+            eq(groupMemberships.groupId, group.id),
+            eq(groupMemberships.userId, previousMentorId),
+            eq(groupMemberships.role, 'mentor'),
+          ),
+        );
+    }
+
+    const [existingMembership] = await tx
+      .select()
+      .from(groupMemberships)
+      .where(and(eq(groupMemberships.groupId, group.id), eq(groupMemberships.userId, mentor.id)))
+      .limit(1);
+
+    if (existingMembership) {
+      await tx
+        .update(groupMemberships)
+        .set({ role: 'mentor', isActive: true, leftAt: null, updatedAt: new Date() })
+        .where(eq(groupMemberships.id, existingMembership.id));
+    } else {
+      await tx.insert(groupMemberships).values({ groupId: group.id, userId: mentor.id, role: 'mentor' });
+    }
+
+    const [updated] = await tx
+      .update(groups)
+      .set({ mentorUserId: mentor.id, updatedAt: new Date() })
+      .where(eq(groups.id, group.id))
+      .returning();
+    if (!updated) throw notFound('Grup bulunamadı.');
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.groupMentorAssigned,
+        targetType: 'group',
+        targetId: group.id,
+        targetLabel: group.name,
+        chapterId: group.chapterId,
+        academicYearId: group.academicYearId,
+        before: { mentorUserId: previousMentorId },
+        after: { mentorUserId: mentor.id },
+      },
+      tx,
+    );
+
+    return updated;
   });
 }
 

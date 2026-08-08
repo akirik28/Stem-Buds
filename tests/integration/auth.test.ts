@@ -74,7 +74,7 @@ describe('account creation', () => {
 
   it('rejects a malformed username', async () => {
     await expect(
-      createUser({ username: 'Ad Soyad!', fullName: 'Test', role: 'co_director', actor }),
+      createUser({ username: 'Ad Soyad!', fullName: 'Test', role: 'regional_director', actor }),
     ).rejects.toSatisfy((error: unknown) => isAppError(error) && error.code === 'validation');
   });
 

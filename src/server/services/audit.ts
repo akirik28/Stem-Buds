@@ -30,6 +30,7 @@ export const AUDIT_ACTIONS = {
   groupCreated: 'group.created',
   groupUpdated: 'group.updated',
   groupMembershipChanged: 'group.membership_changed',
+  groupMentorAssigned: 'group.mentor_assigned',
   attendanceEdited: 'attendance.edited',
   homeworkEdited: 'homework.edited',
   homeworkStatusEdited: 'homework.status_edited',

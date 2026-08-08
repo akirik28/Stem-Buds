@@ -3,12 +3,14 @@ import { pgEnum } from 'drizzle-orm/pg-core';
 /**
  * System-wide role of a user account.
  *
- * `regional_director`, `co_director` and `vice_president` together form
- * Executive Management ("Üst Yönetim").
+ * `regional_director` and `vice_president` together form Executive
+ * Management ("Üst Yönetim"). Multiple people can hold `regional_director`
+ * at once (e.g. Ada Sarp Kırık and Hande Özcan) with fully equal authority —
+ * it is not a hierarchy, so there is no separate "co-director" role beneath
+ * or alongside it.
  */
 export const userRoleEnum = pgEnum('user_role', [
   'regional_director',
-  'co_director',
   'vice_president',
   'chapter_head',
   'mentor',
@@ -89,11 +91,17 @@ export const complaintStatusEnum = pgEnum('complaint_status', [
   'resolved',
 ]);
 
-/** The three internal communication structures. */
+/**
+ * The internal communication structures. `group` is the schema-level
+ * foundation for each Group's own channel (mentor + that group's active
+ * students, with Regional Director oversight) — the messaging/realtime UI
+ * itself belongs to the Communication phase, not Phase 2.
+ */
 export const channelTypeEnum = pgEnum('channel_type', [
   'presidency',
   'chapter_management',
   'chapter_mentors',
+  'group',
 ]);
 
 /** Result of one logical outbound e-mail. */

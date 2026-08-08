@@ -26,7 +26,7 @@ import type { UserRole } from '../src/server/authz/policy';
  *  - the temporary password is printed once and never stored.
  */
 
-const EXECUTIVE_ROLES: UserRole[] = ['regional_director', 'co_director', 'vice_president'];
+const EXECUTIVE_ROLES: UserRole[] = ['regional_director', 'vice_president'];
 
 async function main(): Promise<void> {
   const { values } = parseArgs({
@@ -53,7 +53,7 @@ async function main(): Promise<void> {
 
   if (!values.username || !values.name) {
     fail(
-      'Usage: npm run bootstrap:executive -- --username <username> --name "<Ad Soyad>" [--role regional_director|co_director|vice_president] [--email <address>] [--token <BOOTSTRAP_TOKEN>]',
+      'Usage: npm run bootstrap:executive -- --username <username> --name "<Ad Soyad>" [--role regional_director|vice_president] [--email <address>] [--token <BOOTSTRAP_TOKEN>]',
     );
   }
 

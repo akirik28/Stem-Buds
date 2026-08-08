@@ -128,6 +128,14 @@ export const chapterMemberships = pgTable(
  * so the database itself rejects any row where a group's `programId` doesn't
  * match its chapter's — a group can never end up in Program A while its
  * chapter is in Program B, even if a future bug in the service layer tried.
+ *
+ * `mentorUserId` is the group's single authoritative assigned mentor (one
+ * group has exactly one mentor once operational; one mentor may be assigned
+ * to several groups). It starts NULL — a group with no mentor yet is a draft
+ * and is never treated as operational — and is only ever changed through
+ * `assignGroupMentor` in group-service.ts, which also keeps the mirrored
+ * `groupMemberships` row (the thing `AccessScope.mentorGroupIds` is actually
+ * computed from) and the audit log in sync.
  */
 export const groups = pgTable(
   'groups',
@@ -148,6 +156,9 @@ export const groups = pgTable(
     /** Display name, e.g. "Bio 1". Group codes stay in their canonical form. */
     name: varchar('name', { length: 64 }).notNull(),
 
+    /** NULL = draft (no mentor assigned yet, not operational). */
+    mentorUserId: uuid('mentor_user_id').references(() => users.id, { onDelete: 'set null' }),
+
     isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -166,6 +177,7 @@ export const groups = pgTable(
     ),
     index('groups_chapter_idx').on(table.chapterId, table.academicYearId),
     index('groups_program_idx').on(table.programId),
+    index('groups_mentor_idx').on(table.mentorUserId),
     // Composite-FK target for `management_alerts.groupId`, mirroring
     // `chapters_id_program_unique` above.
     uniqueIndex('groups_id_program_unique').on(table.id, table.programId),
@@ -235,6 +247,7 @@ export const groupsRelations = relations(groups, ({ one, many }) => ({
     fields: [groups.academicYearId],
     references: [academicYears.id],
   }),
+  mentor: one(users, { fields: [groups.mentorUserId], references: [users.id] }),
   memberships: many(groupMemberships),
 }));
 
