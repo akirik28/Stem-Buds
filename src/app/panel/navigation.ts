@@ -46,6 +46,10 @@ export function buildNavigation(scope: AccessScope): NavItem[] {
 
   items.push({ href: '/panel/projeler', label: 'Projeler' });
 
+  if (isStudent(scope.role)) {
+    items.push({ href: '/panel/geri-bildirim', label: 'Geri Bildirim' });
+  }
+
   if (!isStudent(scope.role) && !isAdvisorTeacher(scope.role)) {
     items.push({ href: '/panel/mesajlar', label: 'Mesajlar' });
   }

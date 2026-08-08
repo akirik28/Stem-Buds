@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { requireAuthContext } from '@/server/auth/context';
 import { setAlertWorkflowStatus } from '@/server/services/alert-query';
+import { setComplaintStatus } from '@/server/services/complaint-service';
+import { markFeedbackReviewed } from '@/server/services/feedback-service';
 import { getChapterGroupStatusInsight, getDataQuestionInsight, getWeeklySummaryInsight } from '@/server/services/management-ai';
 import { toUserMessage } from '@/server/errors';
 import type { AiManagementInsight } from '@/server/ai/insight-schema';
@@ -21,6 +23,38 @@ export async function setAlertStatusAction(alertId: string, status: 'investigati
     revalidatePath('/panel/yonetim-akisi');
     revalidatePath('/panel/dikkat-gerektirenler');
     return { success: status === 'investigating' ? 'İnceleniyor olarak işaretlendi.' : 'Kapatıldı.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function setComplaintStatusAction(
+  complaintId: string,
+  status: 'investigating' | 'resolved',
+  resolutionNote: string | null,
+): Promise<AlertActionState> {
+  const context = await requireAuthContext();
+  try {
+    await setComplaintStatus({
+      complaintId,
+      status,
+      resolutionNote,
+      scope: context.scope,
+      actor: { id: context.user.id, name: context.user.fullName },
+    });
+    revalidatePath('/panel/yonetim-akisi');
+    return { success: status === 'investigating' ? 'İnceleniyor olarak işaretlendi.' : 'Sonuçlandırıldı.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function markFeedbackReviewedAction(feedbackId: string): Promise<AlertActionState> {
+  const context = await requireAuthContext();
+  try {
+    await markFeedbackReviewed({ feedbackId, scope: context.scope, actor: { id: context.user.id, name: context.user.fullName } });
+    revalidatePath('/panel/yonetim-akisi');
+    return { success: 'İncelendi olarak işaretlendi.' };
   } catch (error) {
     return { error: toUserMessage(error) };
   }

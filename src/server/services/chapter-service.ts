@@ -182,6 +182,27 @@ export type ChapterMember = {
   role: 'mentor' | 'student';
 };
 
+/** The chapter's responsible Chapter Head for the given academic year, if assigned. */
+export async function getChapterHead(
+  chapterId: string,
+  academicYearId: string,
+): Promise<{ id: string; fullName: string; username: string } | null> {
+  const [row] = await getDb()
+    .select({ id: users.id, fullName: users.fullName, username: users.username })
+    .from(chapterMemberships)
+    .innerJoin(users, eq(users.id, chapterMemberships.userId))
+    .where(
+      and(
+        eq(chapterMemberships.chapterId, chapterId),
+        eq(chapterMemberships.academicYearId, academicYearId),
+        eq(chapterMemberships.isActive, true),
+        eq(chapterMemberships.role, 'chapter_head'),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
 /**
  * Mentors and students who belong to a chapter (for the current academic
  * year), used to populate "add member" pickers on the chapter's groups —

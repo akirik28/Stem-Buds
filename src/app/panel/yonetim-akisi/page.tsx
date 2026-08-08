@@ -2,18 +2,23 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireAuthContext } from '@/server/auth/context';
-import { canViewManagementFeed, isChapterHead, isExecutive } from '@/server/authz/policy';
+import { canSeeComplaintReporter, canViewManagementFeed, isChapterHead, isExecutive } from '@/server/authz/policy';
 import { canManageAlertWorkflow, getManagementKpis, listAlertsForViewer, type ManagementAlert } from '@/server/services/alert-query';
 import { runAlertEvaluation } from '@/server/services/alert-engine';
+import { listComplaintsForViewer } from '@/server/services/complaint-service';
+import { listContinuousFeedbackForViewer } from '@/server/services/feedback-service';
+import { getUserById } from '@/server/services/user-admin';
 import { getWeeklySummaryInsight, getChapterGroupStatusInsight } from '@/server/services/management-ai';
 import { listPrograms } from '@/server/services/program-service';
 import { Card, CardTitle, EmptyState } from '@/components/ui/card';
 import { ALL_PROGRAMS_LABEL } from '@/server/domain/program';
 import { formatPercent } from '@/lib/format';
-import { alertTabLabels } from '@/lib/i18n/tr';
+import { alertTabLabels, messages } from '@/lib/i18n/tr';
 import { AlertCard } from './alert-card';
 import { AiInsightSurface } from './ai-insight-surface';
+import { ComplaintCard } from './complaint-card';
 import { DataQuestionBox } from './data-question-box';
+import { FeedbackCard } from './feedback-card';
 import { generateChapterGroupStatusAction, generateWeeklySummaryAction, type AiActionState } from './actions';
 
 export const metadata: Metadata = {
@@ -47,6 +52,33 @@ export default async function ManagementFeedPage({
     tab === 'feedback'
       ? []
       : await listAlertsForViewer(context.scope, { programId: programFilter, tab });
+
+  let complaints: Awaited<ReturnType<typeof listComplaintsForViewer>> = [];
+  let complaintReporterLabels = new Map<string, string | null>();
+  let feedbackItems: Awaited<ReturnType<typeof listContinuousFeedbackForViewer>> = [];
+  let feedbackReporterLabels = new Map<string, string | null>();
+  if (tab === 'feedback') {
+    [complaints, feedbackItems] = await Promise.all([
+      listComplaintsForViewer(context.scope, { programId: programFilter }),
+      listContinuousFeedbackForViewer(context.scope, { programId: programFilter }),
+    ]);
+
+    const complaintReporterIds = [
+      ...new Set(
+        complaints
+          .filter((c) => c.reporterUserId && canSeeComplaintReporter(context.scope, c))
+          .map((c) => c.reporterUserId as string),
+      ),
+    ];
+    const feedbackReporterIds = [...new Set(feedbackItems.filter((f) => f.reporterUserId).map((f) => f.reporterUserId as string))];
+
+    const [complaintReporters, feedbackReporters] = await Promise.all([
+      Promise.all(complaintReporterIds.map((id) => getUserById(id))),
+      Promise.all(feedbackReporterIds.map((id) => getUserById(id))),
+    ]);
+    complaintReporterLabels = new Map(complaintReporterIds.map((id, i) => [id, complaintReporters[i]?.fullName ?? null]));
+    feedbackReporterLabels = new Map(feedbackReporterIds.map((id, i) => [id, feedbackReporters[i]?.fullName ?? null]));
+  }
 
   const singleChapterId = isChapterHead(context.scope.role) ? context.scope.headChapterIds[0] : undefined;
 
@@ -148,10 +180,38 @@ export default async function ManagementFeedPage({
       </nav>
 
       {tab === 'feedback' ? (
-        <EmptyState
-          title="Bu bölüm henüz aktif değil."
-          description="Geri bildirim ve şikâyet verileri sonraki bir aşamada bu sekmede gösterilecek."
-        />
+        <div className="space-y-6">
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-navy-500">Şikâyetler</h2>
+            {complaints.length === 0 ? (
+              <EmptyState title={messages.empty.noComplaints} />
+            ) : (
+              complaints.map((complaint) => (
+                <ComplaintCard
+                  key={complaint.id}
+                  complaint={complaint}
+                  reporterLabel={complaint.reporterUserId ? (complaintReporterLabels.get(complaint.reporterUserId) ?? null) : null}
+                  canManage={isExecutive(context.scope.role) || (isChapterHead(context.scope.role) && context.scope.headChapterIds.includes(complaint.chapterId))}
+                />
+              ))
+            )}
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-navy-500">Geri Bildirimler</h2>
+            {feedbackItems.length === 0 ? (
+              <EmptyState title={messages.empty.noFeedback} />
+            ) : (
+              feedbackItems.map((item) => (
+                <FeedbackCard
+                  key={item.id}
+                  feedback={item}
+                  reporterLabel={item.reporterUserId ? (feedbackReporterLabels.get(item.reporterUserId) ?? null) : null}
+                />
+              ))
+            )}
+          </section>
+        </div>
       ) : alerts.length === 0 ? (
         <EmptyState title="Şu anda dikkat gerektiren bir konu bulunmuyor." />
       ) : (

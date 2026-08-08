@@ -2,9 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { requireAuthContext } from '@/server/auth/context';
-import { canFinalizeWeeklyRecord, canManageChapter, canViewGroup } from '@/server/authz/policy';
+import { canFinalizeWeeklyRecord, canManageChapter, canViewGroup, isMentor } from '@/server/authz/policy';
 import { getChapterById, listChapterMembers } from '@/server/services/chapter-service';
 import { getGroupById, listGroupMembers } from '@/server/services/group-service';
+import { getMentorAggregateFeedback } from '@/server/services/feedback-service';
 import { listWeeklySessionsByGroup } from '@/server/services/weekly-session-service';
 import { Card, CardTitle, EmptyState } from '@/components/ui/card';
 import { StatusPill } from '@/components/ui/status';
@@ -61,6 +62,11 @@ export default async function GroupDetailPage({
 
   const sessions = await listWeeklySessionsByGroup(group.id);
   const canFinalizeSessions = canFinalizeWeeklyRecord(context.scope, group.id, chapter.id);
+
+  const feedbackAverages =
+    isMentor(context.scope.role) && context.scope.mentorGroupIds.includes(group.id)
+      ? await getMentorAggregateFeedback(context.scope, group.id)
+      : null;
 
   return (
     <div className="space-y-6">
@@ -182,6 +188,34 @@ export default async function GroupDetailPage({
           </div>
         )}
       </Card>
+
+      {feedbackAverages ? (
+        <Card>
+          <CardTitle>Geri Bildirim Özeti</CardTitle>
+          {feedbackAverages.responseCount === 0 ? (
+            <p className="mt-2 text-sm text-navy-500">Bu grup için henüz anket yanıtı bulunmuyor.</p>
+          ) : (
+            <div className="mt-3">
+              <p className="text-xs text-navy-400">{feedbackAverages.responseCount} yanıtın ortalaması</p>
+              <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <FeedbackAverage label="Mentor yönlendirmesi" value={feedbackAverages.avgMentorGuidance} />
+                <FeedbackAverage label="Verimlilik" value={feedbackAverages.avgSessionProductivity} />
+                <FeedbackAverage label="Destek" value={feedbackAverages.avgSupport} />
+                <FeedbackAverage label="İlerleme" value={feedbackAverages.avgGroupProgress} />
+              </dl>
+            </div>
+          )}
+        </Card>
+      ) : null}
+    </div>
+  );
+}
+
+function FeedbackAverage({ label, value }: { label: string; value: number | null }) {
+  return (
+    <div>
+      <dt className="text-xs text-navy-400">{label}</dt>
+      <dd className="text-lg font-semibold text-navy-900">{value !== null ? value.toFixed(1) : '—'}</dd>
     </div>
   );
 }

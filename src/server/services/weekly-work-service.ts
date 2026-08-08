@@ -16,6 +16,7 @@ import {
   type SessionRequirement,
 } from '@/server/domain/weekly-completion';
 import { AUDIT_ACTIONS, recordAudit } from './audit';
+import { maybeGenerateFeedbackCycles } from './feedback-service';
 
 export type WeeklyWorkLog = typeof weeklyWorkLogs.$inferSelect;
 export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
@@ -470,7 +471,18 @@ export async function approveWeeklySession(input: { weeklySessionId: string; act
       tx,
     );
 
-    return recomputeCompletion(input.weeklySessionId, tx);
+    const workLog = await recomputeCompletion(input.weeklySessionId, tx);
+
+    // Mentor approval is always the last requirement (see the
+    // `missingExceptApproval` check above), so this is the exact moment a
+    // session transitions to complete — the trigger point for Section 5's
+    // "every 3 completed sessions" feedback cycle, same transaction.
+    if (workLog.completedAt) {
+      const [session] = await tx.select({ groupId: weeklySessions.groupId }).from(weeklySessions).where(eq(weeklySessions.id, input.weeklySessionId)).limit(1);
+      if (session) await maybeGenerateFeedbackCycles(session.groupId, tx);
+    }
+
+    return workLog;
   });
 }
 
