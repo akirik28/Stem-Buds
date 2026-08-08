@@ -22,7 +22,7 @@ import {
 import { Card, CardTitle } from '@/components/ui/card';
 import { StatusPill } from '@/components/ui/status';
 import { formatDateTr, formatTimeRangeTr } from '@/lib/format';
-import { weeklySessionStateLabels } from '@/lib/i18n/tr';
+import { attendanceLabels, homeworkStatusLabels, weeklySessionStateLabels } from '@/lib/i18n/tr';
 import { AttendanceForm } from './attendance-form';
 import { NarrativeForm } from './narrative-form';
 import { HomeworkForm } from './homework-form';
@@ -227,7 +227,7 @@ function ReadOnlyAttendance({
   attendanceByMembership,
 }: {
   students: { id: string; fullName: string; username: string }[];
-  attendanceByMembership: Map<string, { status: string; note: string | null }>;
+  attendanceByMembership: Map<string, { status: keyof typeof attendanceLabels; note: string | null }>;
 }) {
   if (students.length === 0) return <p className="mt-2 text-sm text-navy-500">Grup üyesi yok.</p>;
   return (
@@ -237,7 +237,7 @@ function ReadOnlyAttendance({
         return (
           <li key={s.id} className="flex items-center justify-between py-2 text-sm">
             <span>{s.fullName}</span>
-            <span className="text-navy-500">{record ? record.status : 'Bekliyor'}</span>
+            <span className="text-navy-500">{record ? attendanceLabels[record.status] : 'Bekliyor'}</span>
           </li>
         );
       })}
@@ -269,14 +269,16 @@ function ReadOnlyHomeworkStatuses({
   statusByMembership,
 }: {
   students: { id: string; fullName: string }[];
-  statusByMembership: Map<string, { status: string }>;
+  statusByMembership: Map<string, { status: keyof typeof homeworkStatusLabels }>;
 }) {
   return (
     <ul className="mt-3 divide-y divide-navy-100">
       {students.map((s) => (
         <li key={s.id} className="flex items-center justify-between py-2 text-sm">
           <span>{s.fullName}</span>
-          <span className="text-navy-500">{statusByMembership.get(s.id)?.status ?? 'pending'}</span>
+          <span className="text-navy-500">
+            {homeworkStatusLabels[statusByMembership.get(s.id)?.status ?? 'pending']}
+          </span>
         </li>
       ))}
     </ul>
