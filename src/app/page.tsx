@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BrandMark } from '@/components/brand/brand-mark';
+import { BrandLockup } from '@/components/brand/logo';
 
 /**
  * Placeholder public entry point. The full public website — hero, programme,
@@ -9,9 +9,8 @@ export default function HomePage() {
   return (
     <div className="flex min-h-dvh flex-col bg-navy-900 text-white">
       <header className="container-page py-6">
-        <Link href="/" className="inline-flex items-center gap-2">
-          <BrandMark className="h-9 w-9" />
-          <span className="text-lg font-semibold tracking-tight">STEM &amp; BUDS</span>
+        <Link href="/" className="inline-flex rounded-lg">
+          <BrandLockup tone="dark" />
         </Link>
       </header>
 

@@ -3,12 +3,12 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'STEM & BUDS',
-    template: '%s · STEM & BUDS',
+    default: 'STEM & BUDS Türkiye',
+    template: '%s · STEM & BUDS Türkiye',
   },
   description:
     'STEM & BUDS, lise öğrencilerini mentorlarla bir araya getirerek fikirleri gerçek araştırma ve proje çalışmalarına dönüştüren öğrenci liderliğinde bir programdır.',
-  applicationName: 'STEM & BUDS',
+  applicationName: 'STEM & BUDS Türkiye',
   robots: { index: true, follow: true },
 };
 

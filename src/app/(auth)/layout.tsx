@@ -1,13 +1,12 @@
 import Link from 'next/link';
-import { BrandMark } from '@/components/brand/brand-mark';
+import { BrandLockup } from '@/components/brand/logo';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-navy-900">
       <header className="container-page py-6">
-        <Link href="/" className="inline-flex items-center gap-2 text-white">
-          <BrandMark className="h-8 w-8" />
-          <span className="text-lg font-semibold tracking-tight">STEM &amp; BUDS</span>
+        <Link href="/" className="inline-flex rounded-lg">
+          <BrandLockup tone="dark" />
         </Link>
       </header>
 
@@ -16,7 +15,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </main>
 
       <footer className="container-page pb-8 text-center text-xs text-navy-300">
-        <p>STEM &amp; BUDS — öğrenci liderliğinde mentorluk ve proje programı</p>
+        <p>STEM &amp; BUDS Türkiye — öğrenci liderliğinde mentorluk ve proje programı</p>
       </footer>
     </div>
   );
