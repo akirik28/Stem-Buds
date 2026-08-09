@@ -23,6 +23,11 @@ export function PlatformNav({ items }: { items: NavItem[] }) {
               <li key={item.href} className="shrink-0">
                 <Link
                   href={item.href}
+                  // Every panel destination is dynamic and database-backed.
+                  // Prefetching the entire Executive menu at once creates a
+                  // burst of unnecessary Supabase requests on Vercel and can
+                  // put the route the user actually clicked behind that work.
+                  prefetch={false}
                   aria-current={isActive ? 'page' : undefined}
                   className={cn(
                     'inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium transition-colors',

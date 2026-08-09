@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm';
-import { getDb } from '@/server/db';
+import { ensureDbReady, getDb } from '@/server/db';
 import { users } from '@/server/db/schema';
 import { AppError, rateLimited, validationError } from '@/server/errors';
 import { messages } from '@/lib/i18n/tr';
@@ -60,6 +60,10 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   if (username.length === 0 || input.password.length === 0) {
     throw new AppError('validation', messages.auth.invalidCredentials);
   }
+
+  // Login has no authenticated request context yet, so it performs the same
+  // stale-socket repair explicitly before rate-limit and account queries.
+  await ensureDbReady();
 
   const ipBucket = `login:ip:${input.ipHash ?? 'unknown'}`;
   const userBucket = `login:user:${username}`;

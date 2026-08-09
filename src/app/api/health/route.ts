@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSql } from '@/server/db';
+import { ensureDbReady } from '@/server/db';
 
 /**
  * Railway health-check target. Deliberately outside the app's auth model —
@@ -17,7 +17,7 @@ export async function GET(): Promise<NextResponse> {
   const headers = { 'Cache-Control': 'no-store' };
 
   try {
-    await getSql()`SELECT 1`;
+    await ensureDbReady({ force: true });
     return NextResponse.json({ status: 'ok' }, { status: 200, headers });
   } catch {
     return NextResponse.json({ status: 'unavailable' }, { status: 503, headers });
