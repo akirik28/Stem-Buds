@@ -12,6 +12,7 @@ import {
   canFinalizeWeeklyRecord,
   canManageAccounts,
   canManageChapter,
+  canManagePublicContent,
   canManageProject,
   canSeeComplaintReporter,
   canViewChapter,
@@ -294,5 +295,15 @@ describe('exports and management feed', () => {
     expect(canViewManagementFeed(chapterHeadA)).toBe(true);
     expect(canViewManagementFeed(mentorA1)).toBe(false);
     expect(canViewManagementFeed(studentA1)).toBe(false);
+  });
+});
+
+describe('public site content management', () => {
+  it('restricts the CMS to Executives only', () => {
+    expect(canManagePublicContent(executive)).toBe(true);
+    expect(canManagePublicContent(viceDirector)).toBe(true);
+    expect(canManagePublicContent(chapterHeadA)).toBe(false);
+    expect(canManagePublicContent(mentorA1)).toBe(false);
+    expect(canManagePublicContent(studentA1)).toBe(false);
   });
 });
