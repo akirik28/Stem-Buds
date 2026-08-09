@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildNavigation } from '@/app/panel/navigation';
@@ -52,5 +52,11 @@ describe('panel navigation integrity', () => {
       const pagePath = path.join(process.cwd(), 'src', 'app', 'panel', relative, 'page.tsx');
       expect(existsSync(pagePath), `Navigation links to "${href}" but no page exists at ${pagePath}`).toBe(true);
     }
+  });
+
+  it('does not prefetch every database-backed panel destination at once', () => {
+    const navPath = path.join(process.cwd(), 'src', 'app', 'panel', 'platform-nav.tsx');
+    const source = readFileSync(navPath, 'utf8');
+    expect(source).toContain('prefetch={false}');
   });
 });

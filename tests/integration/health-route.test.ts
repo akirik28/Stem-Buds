@@ -1,20 +1,15 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type postgres from 'postgres';
 import { GET } from '@/app/api/health/route';
 import * as db from '@/server/db';
 
 /**
  * The route talks to the real test database (same convention as every other
- * integration test in this suite) for the success path, and swaps `getSql`'s
- * return value for exactly one call to simulate the database being down —
+ * integration test in this suite) for the success path, and makes the shared
+ * liveness preflight reject to simulate the database being down —
  * no real infrastructure is ever touched or taken offline.
  */
-function rejectingSqlTag(error: Error): postgres.Sql {
-  return (() => Promise.reject(error)) as unknown as postgres.Sql;
-}
-
 describe('GET /api/health', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -38,8 +33,8 @@ describe('GET /api/health', () => {
   });
 
   it('returns 503 and {status:"unavailable"} when the database cannot be reached', async () => {
-    vi.spyOn(db, 'getSql').mockReturnValueOnce(
-      rejectingSqlTag(new Error('connection refused to db-internal.railway.internal:5432 user=postgres password=hunter2')),
+    vi.spyOn(db, 'ensureDbReady').mockRejectedValueOnce(
+      new Error('connection refused to db-internal.railway.internal:5432 user=postgres password=hunter2'),
     );
     const response = await GET();
     expect(response.status).toBe(503);
@@ -47,8 +42,8 @@ describe('GET /api/health', () => {
   });
 
   it('never leaks the underlying error message, host, or credentials on failure', async () => {
-    vi.spyOn(db, 'getSql').mockReturnValueOnce(
-      rejectingSqlTag(new Error('connection refused to db-internal.railway.internal:5432 user=postgres password=hunter2')),
+    vi.spyOn(db, 'ensureDbReady').mockRejectedValueOnce(
+      new Error('connection refused to db-internal.railway.internal:5432 user=postgres password=hunter2'),
     );
     const response = await GET();
     const raw = await response.text();
@@ -60,13 +55,13 @@ describe('GET /api/health', () => {
   });
 
   it('still sets Cache-Control: no-store on a failure response', async () => {
-    vi.spyOn(db, 'getSql').mockReturnValueOnce(rejectingSqlTag(new Error('down')));
+    vi.spyOn(db, 'ensureDbReady').mockRejectedValueOnce(new Error('down'));
     const response = await GET();
     expect(response.headers.get('Cache-Control')).toBe('no-store');
   });
 
   it('recovers on the next call once the database answers again (the mocked failure is one-shot)', async () => {
-    vi.spyOn(db, 'getSql').mockReturnValueOnce(rejectingSqlTag(new Error('down')));
+    vi.spyOn(db, 'ensureDbReady').mockRejectedValueOnce(new Error('down'));
     await GET();
     const recovered = await GET();
     expect(recovered.status).toBe(200);

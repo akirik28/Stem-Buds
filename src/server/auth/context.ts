@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { and, eq, inArray } from 'drizzle-orm';
-import { getDb } from '@/server/db';
+import { ensureDbReady, getDb } from '@/server/db';
 import { advisorProgramScopes, chapterMemberships, chapters, groupMemberships, groups } from '@/server/db/schema';
 import { forbidden, unauthenticated } from '@/server/errors';
 import type { AccessScope } from '@/server/authz/policy';
@@ -23,6 +23,12 @@ export type AuthContext = {
 export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
   const cookieStore = await cookies();
   const token = cookieStore.get(sessionCookieName())?.value;
+  if (!token) return null;
+
+  // This is the common request boundary for every authenticated panel page
+  // and action. Repair a stale serverless database socket before any of those
+  // paths starts its real query work.
+  await ensureDbReady();
   const session = await validateSessionToken(token);
   if (!session) return null;
 
