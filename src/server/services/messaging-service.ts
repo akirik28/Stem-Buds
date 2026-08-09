@@ -49,19 +49,16 @@ function toAccessInput(channel: Channel): ChannelAccessInput {
  * safe under concurrent first-ever calls, unlike a check-then-insert.
  */
 export async function ensureOrgChannels(db: Database = getDb()): Promise<void> {
-  const singletons: Array<{ type: 'presidency' | 'chapter_management'; name: string }> = [
-    { type: 'presidency', name: 'Başkanlık' },
-    { type: 'chapter_management', name: 'Chapter Yönetimi' },
-  ];
-  for (const singleton of singletons) {
-    await db
-      .insert(channels)
-      .values({ type: singleton.type, name: singleton.name, chapterId: null, groupId: null })
-      .onConflictDoNothing({
-        target: channels.type,
-        where: sql`${channels.type} in ('presidency', 'chapter_management')`,
-      });
-  }
+  await db
+    .insert(channels)
+    .values([
+      { type: 'presidency', name: 'Başkanlık', chapterId: null, groupId: null },
+      { type: 'chapter_management', name: 'Chapter Yönetimi', chapterId: null, groupId: null },
+    ])
+    .onConflictDoNothing({
+      target: channels.type,
+      where: sql`${channels.type} in ('presidency', 'chapter_management')`,
+    });
 }
 
 /**
@@ -101,16 +98,36 @@ export async function ensureGroupChannel(groupId: string, db: Database = getDb()
  * Group at all, yet must see every `chapter_mentors`/`group` channel) — so
  * provisioning scoped only to the *viewer's own* memberships would leave
  * those channels never created for exactly the roles most likely to open
- * them first. All four `ensure*` calls are idempotent, and this app's
- * chapter/group count is small enough that doing this on every read is
- * cheap.
+ * them first.
+ *
+ * This used to insert one chapter/group at a time in a loop — correct, but
+ * O(chapters + groups) sequential round trips on *every* dashboard load.
+ * Harmless against a local Postgres connection; under Supabase's pooler with
+ * a single production connection (`max: 1`, see `server/db/index.ts`) that
+ * queue of awaits was enough to blow past Vercel's function time budget and
+ * surface as the Executive/Chapter Head/Mentor `/panel` failing outright.
+ * Each step below is now one bulk statement instead of one round trip per
+ * row — same idempotent `ON CONFLICT DO NOTHING` guarantee, same partial-
+ * index arbiters, just batched.
  */
 async function ensureAllChannelsProvisioned(db: Database): Promise<void> {
   await ensureOrgChannels(db);
-  const allChapterIds = (await db.select({ id: chapters.id }).from(chapters)).map((c) => c.id);
-  for (const chapterId of allChapterIds) await ensureChapterMentorChannel(chapterId, db);
-  const allGroupIds = (await db.select({ id: groups.id }).from(groups)).map((g) => g.id);
-  for (const groupId of allGroupIds) await ensureGroupChannel(groupId, db);
+
+  const allChapters = await db.select({ id: chapters.id, name: chapters.name }).from(chapters);
+  if (allChapters.length > 0) {
+    await db
+      .insert(channels)
+      .values(allChapters.map((c) => ({ type: 'chapter_mentors' as const, chapterId: c.id, groupId: null, name: `${c.name} — Mentor Ekibi` })))
+      .onConflictDoNothing({ target: channels.chapterId, where: sql`${channels.type} = 'chapter_mentors'` });
+  }
+
+  const allGroups = await db.select({ id: groups.id, name: groups.name, chapterId: groups.chapterId }).from(groups);
+  if (allGroups.length > 0) {
+    await db
+      .insert(channels)
+      .values(allGroups.map((g) => ({ type: 'group' as const, chapterId: g.chapterId, groupId: g.id, name: g.name })))
+      .onConflictDoNothing({ target: [channels.type, channels.groupId] });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -139,23 +156,37 @@ export async function listChannelsForViewer(scope: AccessScope): Promise<Channel
     .where(and(inArray(channelMemberships.channelId, channelIds), eq(channelMemberships.userId, scope.userId)));
   const lastReadByChannel = new Map(readRows.map((r) => [r.channelId, r.lastReadAt]));
 
-  const results: ChannelWithUnread[] = [];
-  for (const channel of accessible) {
-    const lastReadAt = lastReadByChannel.get(channel.id) ?? null;
-    const conditions: SQL[] = [eq(messages.channelId, channel.id), isNull(messages.deletedAt)];
-    const [lastMessage] = await db.select({ createdAt: messages.createdAt }).from(messages).where(and(...conditions)).orderBy(desc(messages.createdAt)).limit(1);
-    const unreadCount = await countUnread(channel.id, lastReadAt, db);
-    results.push({ ...channel, unreadCount, lastMessageAt: lastMessage?.createdAt ?? null });
+  // One query for every accessible channel's messages, instead of two
+  // round trips (last message + unread count) *per channel* in a loop —
+  // same fan-out problem as `ensureAllChannelsProvisioned` above, and on
+  // the same hot dashboard-read path.
+  const messageRows =
+    channelIds.length > 0
+      ? await db
+          .select({ channelId: messages.channelId, createdAt: messages.createdAt })
+          .from(messages)
+          .where(and(inArray(messages.channelId, channelIds), isNull(messages.deletedAt)))
+      : [];
+
+  const lastMessageAtByChannel = new Map<string, Date>();
+  const unreadCountByChannel = new Map<string, number>();
+  for (const row of messageRows) {
+    const currentLast = lastMessageAtByChannel.get(row.channelId);
+    if (!currentLast || row.createdAt > currentLast) lastMessageAtByChannel.set(row.channelId, row.createdAt);
+
+    const lastReadAt = lastReadByChannel.get(row.channelId) ?? null;
+    if (!lastReadAt || row.createdAt > lastReadAt) {
+      unreadCountByChannel.set(row.channelId, (unreadCountByChannel.get(row.channelId) ?? 0) + 1);
+    }
   }
 
-  return results.sort((a, b) => (b.lastMessageAt?.getTime() ?? 0) - (a.lastMessageAt?.getTime() ?? 0));
-}
+  const results: ChannelWithUnread[] = accessible.map((channel) => ({
+    ...channel,
+    unreadCount: unreadCountByChannel.get(channel.id) ?? 0,
+    lastMessageAt: lastMessageAtByChannel.get(channel.id) ?? null,
+  }));
 
-async function countUnread(channelId: string, lastReadAt: Date | null, db: Database): Promise<number> {
-  const conditions: SQL[] = [eq(messages.channelId, channelId), isNull(messages.deletedAt)];
-  if (lastReadAt) conditions.push(gt(messages.createdAt, lastReadAt));
-  const [row] = await db.select({ count: sql<number>`count(*)::int` }).from(messages).where(and(...conditions));
-  return row?.count ?? 0;
+  return results.sort((a, b) => (b.lastMessageAt?.getTime() ?? 0) - (a.lastMessageAt?.getTime() ?? 0));
 }
 
 export async function getChannelForViewer(scope: AccessScope, channelId: string): Promise<Channel | null> {
