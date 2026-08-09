@@ -47,13 +47,13 @@ describe('account creation', () => {
       WHERE table_schema = 'public' AND table_name = 'users'
         AND data_type IN ('text', 'character varying')
     `);
-    for (const column of matches.rows) {
+    for (const column of matches) {
       const found = await getDb().execute<{ count: string }>(
         sql.raw(
           `SELECT count(*)::text AS count FROM public.users WHERE "${column.hit}" = '${created.temporaryPassword}'`,
         ),
       );
-      expect(found.rows[0]?.count).toBe('0');
+      expect(found[0]?.count).toBe('0');
     }
   });
 

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { closeDb, getDb } from '@/server/db';
 import { getEnv } from '@/server/env';
 import { ensureCorePrograms } from '@/server/services/program-service';
@@ -32,7 +32,7 @@ export async function truncateAll(): Promise<void> {
     WHERE schemaname = 'public' AND tablename <> '__drizzle_migrations'
   `);
 
-  const names = tables.rows.map((row) => `"public"."${row.tablename}"`);
+  const names = tables.map((row) => `"public"."${row.tablename}"`);
   if (names.length === 0) return;
 
   await db.execute(sql.raw(`TRUNCATE TABLE ${names.join(', ')} RESTART IDENTITY CASCADE`));

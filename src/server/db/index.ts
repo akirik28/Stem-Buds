@@ -1,49 +1,57 @@
-import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
+import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import { getEnv } from '@/server/env';
 import * as schema from './schema';
 
-export type Database = NodePgDatabase<typeof schema>;
+export type Database = PostgresJsDatabase<typeof schema>;
 
 /**
- * A single pool is shared per process. Next.js re-evaluates modules on every hot
- * reload in development, so the pool is cached on `globalThis` to avoid leaking
+ * A single client is shared per process. Next.js re-evaluates modules on every
+ * hot reload in development, so it is cached on `globalThis` to avoid leaking
  * connections.
+ *
+ * `prepare: false` is required against Supabase's transaction-mode pooler
+ * (port 6543) — that mode does not support server-side prepared statements.
+ * If `DATABASE_URL` instead points at a direct/session-mode connection
+ * (port 5432, no pooler), `prepare: false` is still safe, just unnecessary.
  */
 const globalForDb = globalThis as unknown as {
-  __stembudsPool?: Pool;
+  __stembudsClient?: postgres.Sql;
   __stembudsDb?: Database;
 };
 
-function createPool(): Pool {
+function createClient(): postgres.Sql {
   const env = getEnv();
-  return new Pool({
-    connectionString: env.DATABASE_URL,
+  return postgres(env.DATABASE_URL, {
     max: env.NODE_ENV === 'production' ? 10 : 5,
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 10_000,
+    idle_timeout: 30,
+    connect_timeout: 10,
+    prepare: false,
+    // Routine, expected notices (e.g. "already exists, skipping" on a
+    // re-run of an idempotent migration) — never anything actionable.
+    onnotice: () => undefined,
   });
 }
 
-export function getPool(): Pool {
-  if (!globalForDb.__stembudsPool) {
-    globalForDb.__stembudsPool = createPool();
+export function getSql(): postgres.Sql {
+  if (!globalForDb.__stembudsClient) {
+    globalForDb.__stembudsClient = createClient();
   }
-  return globalForDb.__stembudsPool;
+  return globalForDb.__stembudsClient;
 }
 
 export function getDb(): Database {
   if (!globalForDb.__stembudsDb) {
-    globalForDb.__stembudsDb = drizzle(getPool(), { schema });
+    globalForDb.__stembudsDb = drizzle(getSql(), { schema });
   }
   return globalForDb.__stembudsDb;
 }
 
-/** Closes the shared pool. Used by scripts and by the test harness. */
+/** Closes the shared client. Used by scripts and by the test harness. */
 export async function closeDb(): Promise<void> {
-  if (globalForDb.__stembudsPool) {
-    await globalForDb.__stembudsPool.end();
-    globalForDb.__stembudsPool = undefined;
+  if (globalForDb.__stembudsClient) {
+    await globalForDb.__stembudsClient.end();
+    globalForDb.__stembudsClient = undefined;
     globalForDb.__stembudsDb = undefined;
   }
 }

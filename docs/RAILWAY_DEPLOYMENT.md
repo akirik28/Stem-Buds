@@ -14,9 +14,13 @@ deployment deliberately choosing to run it.
 - **Source**: GitHub repository `akirik28/Stem-Buds`, production branch `main`.
 - **Web service**: one persistent Railway service running the Next.js app
   (`npm run build` / `npm run start`). Not serverless/edge — the app uses a
-  long-lived `pg` connection pool and local filesystem storage, both of
-  which need a persistent process.
-- **Database**: Railway's managed PostgreSQL plugin.
+  long-lived `postgres-js` connection pool and local filesystem storage,
+  both of which need a persistent process.
+- **Database**: Supabase (managed Postgres), reached over its
+  transaction-mode connection pooler. Not a Railway plugin — `DATABASE_URL`
+  is set directly to Supabase's connection string (§3). See the note under
+  §2 on why migrations may need the *direct* (non-pooled) connection
+  instead.
 - **File storage**: a Railway Volume mounted at `/app/storage`, referenced
   by `UPLOAD_DIR=/app/storage`. Public site media (Phase 11) and message
   attachments (schema exists; no upload UI is wired up yet as of this
@@ -27,8 +31,8 @@ deployment deliberately choosing to run it.
   domain and must exit (not stay resident) after each run — see §13.
 - **Domain**: deploy first to Railway's generated `*.up.railway.app`
   temporary domain. Attach a custom domain only after smoke testing (§17).
-- **Backups**: enable Railway's managed Postgres backups and back up the
-  storage Volume (§16). Neither is automatic by default.
+- **Backups**: enable Supabase's Postgres backups and back up the storage
+  Volume (§16). Neither is automatic by default.
 
 ### Why one web-service replica
 
@@ -65,6 +69,15 @@ Pre-deploy running `npm run db:migrate` means every deploy applies pending
 Drizzle migrations before the new code starts serving traffic. This is the
 same `scripts/migrate.ts` used locally — nothing deploy-specific about it.
 
+**Pooler vs. direct connection for migrations**: `scripts/migrate.ts` uses
+Drizzle's migrator, which takes an advisory lock while applying migrations —
+not available through Supabase's transaction-mode pooler (port 6543). If
+the pre-deploy step fails for that reason, point `DATABASE_URL` at
+Supabase's *direct* connection string (port 5432) instead. That's safe for
+this app specifically because it runs as one persistent server with a small
+connection count (§3's `max`), not a burst of serverless functions — the
+usual reason to prefer the pooler doesn't apply as strongly here.
+
 ## 3. Environment variables — web service
 
 Set these by **name** in Railway's variable editor. Nothing here is a real
@@ -73,7 +86,7 @@ value — fill in your own where indicated.
 | Variable | Value | Notes |
 |---|---|---|
 | `NODE_ENV` | `production` | |
-| `DATABASE_URL` | Railway variable reference to the Postgres service (e.g. `${{Postgres.DATABASE_URL}}`) | Never paste a literal connection string — reference the plugin so it updates automatically if Railway rotates it. |
+| `DATABASE_URL` | Supabase's connection string (transaction pooler, port 6543 — or the direct connection, port 5432, if migrations need it; see §2) | Not a Railway plugin reference — Supabase isn't provisioned through Railway, so this is a literal connection string you paste in from the Supabase dashboard (Project Settings → Database). Set it once here, not in `.env.local` (§10). |
 | `APP_URL` | the app's own public URL | Set to the temporary `*.up.railway.app` URL first (§10), update after attaching a custom domain (§17). |
 | `APP_TIMEZONE` | `Europe/Istanbul` | |
 | `SESSION_COOKIE_NAME` | `sb_session` | |
@@ -173,11 +186,12 @@ is reachable).
 Follow in order. Each step assumes the previous one succeeded.
 
 1. **Create an empty Railway project.**
-2. **Add PostgreSQL** from Railway's plugin catalog.
+2. **Create the Supabase project** (or use an existing one) and copy its
+   pooler connection string from Project Settings → Database.
 3. **Add the web service**, pointing at the `akirik28/Stem-Buds` GitHub
    repository, branch `main`.
-4. **Reference `DATABASE_URL`** on the web service from the Postgres
-   plugin (a Railway variable reference, not a pasted string — §3).
+4. **Set `DATABASE_URL`** on the web service to the Supabase connection
+   string from step 2 (§3).
 5. **Add the remaining required variables** from §3 (skip the SMTP block).
 6. **Add the Volume**, mounted at `/app/storage`, to the web service.
 7. **Configure** Build Command, Pre-deploy Command, Start Command, and
@@ -288,11 +302,12 @@ before setting it, and record the chosen schedule here once decided:
 
 ## 13. Backups (step 16)
 
-- **Postgres**: enable Railway's managed backup feature for the Postgres
-  plugin. Confirm the retention window meets the organization's actual
-  needs before relying on it.
-- **Storage Volume**: Railway Volumes are not automatically backed up the
-  same way the managed Postgres plugin is. Establish a periodic export of
+- **Postgres**: enable Supabase's backup feature for the project (Database
+  → Backups in the Supabase dashboard). Confirm the retention window and
+  whether point-in-time recovery is available on your plan before relying
+  on it.
+- **Storage Volume**: Railway Volumes are not backed up by Supabase, or by
+  Railway itself, automatically. Establish a periodic export of
   `/app/storage` (e.g. a scheduled copy to external storage) before this
   deployment holds any real uploaded media that would be painful to lose.
   This deployment does not yet have that export configured — treat it as
@@ -310,9 +325,10 @@ before setting it, and record the chosen schedule here once decided:
   to hand-edit or delete an already-applied one. `scripts/migrate.ts`
   applies pending migrations in order; nothing in this repository
   currently supports an automatic "down" migration.
-- **Database restore**: restore from the Postgres plugin's backup (§13)
-  into a new instance, verify it, then repoint `DATABASE_URL` — never
-  restore over the live production database as a first attempt.
+- **Database restore**: restore from Supabase's backup (§13) into a new
+  project or a verified point-in-time snapshot, confirm it looks right,
+  then repoint `DATABASE_URL` — never restore over the live production
+  database as a first attempt.
 - **Storage loss**: restore `/app/storage` from whatever periodic export
   was configured per §13. Rows in `public_media`/message-attachment tables
   whose files are missing degrade to a broken image/link rather than a

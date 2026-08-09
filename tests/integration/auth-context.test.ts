@@ -161,7 +161,7 @@ describe('requireAuthContext — negative cases', () => {
 
 describe('database identity of the auth database', () => {
   it('is actually pointed at the dedicated test database', async () => {
-    const { rows } = await getDb().execute<{ name: string }>(sql`select current_database() as name`);
+    const rows = await getDb().execute<{ name: string }>(sql`select current_database() as name`);
     expect(rows[0]?.name).toBe('stembuds_test');
   });
 });
