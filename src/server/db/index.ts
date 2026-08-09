@@ -23,7 +23,10 @@ const globalForDb = globalThis as unknown as {
 function createClient(): postgres.Sql {
   const env = getEnv();
   return postgres(env.DATABASE_URL, {
-    max: env.NODE_ENV === 'production' ? 10 : 5,
+    // Vercel may start many short-lived function instances. Each instance
+    // therefore keeps only one client connection and lets Supabase's
+    // transaction-mode pooler (port 6543) handle concurrency globally.
+    max: env.NODE_ENV === 'production' ? 1 : 5,
     idle_timeout: 30,
     connect_timeout: 10,
     prepare: false,
