@@ -17,7 +17,7 @@ export async function GET(): Promise<NextResponse> {
   const headers = { 'Cache-Control': 'no-store' };
 
   try {
-    await ensureDbReady({ force: true });
+    await ensureDbReady();
     return NextResponse.json({ status: 'ok' }, { status: 200, headers });
   } catch {
     return NextResponse.json({ status: 'unavailable' }, { status: 503, headers });

@@ -25,33 +25,47 @@ describe('database liveness preflight', () => {
     const healthy = fakeClient(() => Promise.resolve([{ '?column?': 1 }]));
     postgresFactory.mockReturnValue(healthy);
 
-    await ensureDbReady({ force: true });
+    await ensureDbReady();
 
     expect(postgresFactory).toHaveBeenCalledTimes(1);
     expect(getSql()).toBe(healthy);
+  });
+
+  it('surfaces the failure when the database does not answer', async () => {
+    const unreachable = fakeClient(() => Promise.reject(new Error('CONNECT_TIMEOUT')));
+    postgresFactory.mockReturnValue(unreachable);
+
+    await expect(ensureDbReady()).rejects.toThrow('CONNECT_TIMEOUT');
+  });
+
+  /**
+   * The incident this guards against: closing the shared client also kills any
+   * query already in flight on it, which then never settles and hangs the
+   * request until the platform's function timeout.
+   */
+  it('never closes the shared client, on success or on failure', async () => {
+    const healthy = fakeClient(() => Promise.resolve([{ '?column?': 1 }]));
+    postgresFactory.mockReturnValue(healthy);
+    await ensureDbReady();
     expect(healthy.end).not.toHaveBeenCalled();
+
+    await closeDb();
+    postgresFactory.mockReset();
+
+    const unreachable = fakeClient(() => Promise.reject(new Error('CONNECT_TIMEOUT')));
+    postgresFactory.mockReturnValue(unreachable);
+    await expect(ensureDbReady()).rejects.toThrow('CONNECT_TIMEOUT');
+    expect(unreachable.end).not.toHaveBeenCalled();
   });
 
-  it('discards a stale client and succeeds with one fresh retry', async () => {
-    const stale = fakeClient(() => Promise.reject(new Error('CONNECT_TIMEOUT')));
-    const replacement = fakeClient(() => Promise.resolve([{ '?column?': 1 }]));
-    postgresFactory.mockReturnValueOnce(stale).mockReturnValueOnce(replacement);
+  it('keeps serving the same client across repeated checks', async () => {
+    const healthy = fakeClient(() => Promise.resolve([{ '?column?': 1 }]));
+    postgresFactory.mockReturnValue(healthy);
 
-    await ensureDbReady({ force: true });
+    await ensureDbReady();
+    await ensureDbReady();
 
-    expect(postgresFactory).toHaveBeenCalledTimes(2);
-    expect(stale.end).toHaveBeenCalledWith({ timeout: 0 });
-    expect(getSql()).toBe(replacement);
-  });
-
-  it('fails promptly when both the cached and replacement clients are unavailable', async () => {
-    const stale = fakeClient(() => Promise.reject(new Error('CONNECT_TIMEOUT')));
-    const replacement = fakeClient(() => Promise.reject(new Error('CONNECT_TIMEOUT')));
-    postgresFactory.mockReturnValueOnce(stale).mockReturnValueOnce(replacement);
-
-    await expect(ensureDbReady({ force: true })).rejects.toThrow('CONNECT_TIMEOUT');
-
-    expect(stale.end).toHaveBeenCalledWith({ timeout: 0 });
-    expect(replacement.end).toHaveBeenCalledWith({ timeout: 0 });
+    expect(postgresFactory).toHaveBeenCalledTimes(1);
+    expect(getSql()).toBe(healthy);
   });
 });
