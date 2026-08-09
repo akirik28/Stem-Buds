@@ -15,6 +15,7 @@ import {
   canManagePublicContent,
   canManageProject,
   canSeeComplaintReporter,
+  canViewAuditLog,
   canViewChapter,
   canViewGroup,
   canViewManagementFeed,
@@ -69,6 +70,13 @@ const teamLeaderA1 = scope({
   memberChapterIds: [CHAPTER_A],
   studentGroupIds: [GROUP_A1],
   teamLeaderGroupIds: [GROUP_A1],
+});
+
+const advisorTeacher = scope({
+  userId: 'advisor-1',
+  role: 'advisor_teacher',
+  advisorProgramIds: ['program-1'],
+  advisorChapterIds: [CHAPTER_A],
 });
 
 describe('chapter scope', () => {
@@ -305,5 +313,17 @@ describe('public site content management', () => {
     expect(canManagePublicContent(chapterHeadA)).toBe(false);
     expect(canManagePublicContent(mentorA1)).toBe(false);
     expect(canManagePublicContent(studentA1)).toBe(false);
+  });
+});
+
+describe('audit log access', () => {
+  it('opens the audit log to Regional Director and Vice President only, rejecting every other role', () => {
+    expect(canViewAuditLog(executive)).toBe(true);
+    expect(canViewAuditLog(viceDirector)).toBe(true);
+    expect(canViewAuditLog(chapterHeadA)).toBe(false);
+    expect(canViewAuditLog(mentorA1)).toBe(false);
+    expect(canViewAuditLog(studentA1)).toBe(false);
+    expect(canViewAuditLog(teamLeaderA1)).toBe(false);
+    expect(canViewAuditLog(advisorTeacher)).toBe(false);
   });
 });

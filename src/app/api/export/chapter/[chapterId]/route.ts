@@ -4,6 +4,7 @@ import { canExportChapter } from '@/server/authz/policy';
 import { getChapterById } from '@/server/services/chapter-service';
 import { getActiveAcademicYear } from '@/server/services/academic-year';
 import { buildChapterWorkbook } from '@/server/services/export-service';
+import { AUDIT_ACTIONS, recordAudit } from '@/server/services/audit';
 import { isAppError, toUserMessage } from '@/server/errors';
 
 export async function GET(_request: Request, { params }: { params: Promise<{ chapterId: string }> }): Promise<NextResponse> {
@@ -21,6 +22,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cha
 
     const workbook = await buildChapterWorkbook(chapterId, academicYear.id);
     const buffer = await workbook.xlsx.writeBuffer();
+
+    await recordAudit({
+      actorUserId: context.user.id,
+      actorName: context.user.fullName,
+      action: AUDIT_ACTIONS.exportGenerated,
+      targetType: 'export',
+      targetLabel: `${chapter.code} raporu`,
+      chapterId: chapter.id,
+      academicYearId: academicYear.id,
+    });
 
     return new NextResponse(buffer as ArrayBuffer, {
       status: 200,

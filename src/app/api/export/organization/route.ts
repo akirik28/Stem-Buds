@@ -3,6 +3,7 @@ import { requireAuthContext } from '@/server/auth/context';
 import { canExportOrganization } from '@/server/authz/policy';
 import { getActiveAcademicYear } from '@/server/services/academic-year';
 import { buildOrganizationWorkbook } from '@/server/services/export-service';
+import { AUDIT_ACTIONS, recordAudit } from '@/server/services/audit';
 import { isAppError, toUserMessage } from '@/server/errors';
 
 export async function GET(): Promise<NextResponse> {
@@ -18,6 +19,15 @@ export async function GET(): Promise<NextResponse> {
 
     const workbook = await buildOrganizationWorkbook(academicYear.id);
     const buffer = await workbook.xlsx.writeBuffer();
+
+    await recordAudit({
+      actorUserId: context.user.id,
+      actorName: context.user.fullName,
+      action: AUDIT_ACTIONS.exportGenerated,
+      targetType: 'export',
+      targetLabel: 'Organizasyon raporu',
+      academicYearId: academicYear.id,
+    });
 
     return new NextResponse(buffer as ArrayBuffer, {
       status: 200,
