@@ -8,7 +8,9 @@ export const metadata: Metadata = {
   title: 'Haberler',
 };
 
-export const revalidate = 60;
+// News is database-backed. Rendering at request time avoids querying an empty
+// production database during the first Railway build.
+export const dynamic = 'force-dynamic';
 
 export default async function NewsListPage() {
   const posts = await listPublishedNewsPosts(50);

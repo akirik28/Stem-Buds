@@ -5,7 +5,9 @@ import { BrandLockup } from '@/components/brand/logo';
 import { getPublishedNewsPostBySlug } from '@/server/services/public-site-service';
 import { formatDateTr } from '@/lib/format';
 
-export const revalidate = 60;
+// News is database-backed. Rendering at request time avoids a build-time
+// dependency on the production database and keeps publish changes immediate.
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

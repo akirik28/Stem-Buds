@@ -1,9 +1,9 @@
 # Railway Deployment Runbook — STEM & BUDS
 
-This is a manual runbook, not automation. It matches the repository as of
-commit `ef8bfe7` (branch `main`, `github.com/akirik28/Stem-Buds`). No secret
-values appear anywhere in this document — every variable below is named,
-not filled in.
+This is a manual runbook, not automation. It matches the current `main`
+branch of `github.com/akirik28/Stem-Buds` at the time of its latest review.
+No secret values appear anywhere in this document — every variable below is
+named, not filled in.
 
 This document describes how to deploy. It does not deploy anything by
 itself, and no step here should be run without the person doing the

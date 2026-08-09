@@ -7,11 +7,10 @@ import { disciplineLabels } from '@/lib/i18n/tr';
 import { formatDateTr } from '@/lib/format';
 import { ContactForm } from './contact-form';
 
-// Reads no cookies/headers, so Next.js would otherwise prerender this once
-// at build time and bake in whatever Programs/highlights/leadership/news
-// existed then — a real staleness problem once the Phase 11 CMS lets an
-// Executive publish new content and expect the live site to reflect it.
-export const revalidate = 60;
+// This page reads PostgreSQL directly. Keep the query at request time so a
+// clean production build never depends on an already-migrated database and
+// newly published CMS content is visible immediately.
+export const dynamic = 'force-dynamic';
 
 const WHY_ITEMS = [
   {
