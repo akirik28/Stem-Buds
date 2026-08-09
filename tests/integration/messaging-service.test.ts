@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadAccessScope } from '@/server/auth/context';
 import {
   deleteMessage,
@@ -259,5 +259,69 @@ describe('message moderation', () => {
     const execScope = await loadAccessScope(directorId, 'regional_director', academicYearId);
     const pinned = await setMessagePinned({ scope: execScope, messageId: message.id, pinned: true, actor: { id: directorId, name: 'Director' } });
     expect(pinned.isPinned).toBe(true);
+  });
+});
+
+describe('channel provisioning at scale — regression for the production fan-out bug', () => {
+  it('provisions and lists channels for many chapters/groups with a bounded, constant number of queries, not one per chapter or group', async () => {
+    // The default fixtures already have 2 chapters and 1 group. Add a lot
+    // more so a per-row implementation would issue a proportionally large
+    // number of round trips — exactly what made the Executive `/panel`
+    // dashboard fail against Supabase's single production connection
+    // (`max: 1`), even though the same code was harmless against a local
+    // Postgres connection with no meaningful per-query latency.
+    const extraChapterCount = 12;
+    const extraChapters = await Promise.all(
+      Array.from({ length: extraChapterCount }, (_, i) =>
+        createChapter({ programId: onlineProgramId, code: `EX${i}`, name: `Extra Chapter ${i}`, actor }),
+      ),
+    );
+    const extraGroups = await Promise.all(
+      extraChapters.map((chapter) => createGroup({ chapterId: chapter.id, academicYearId, disciplineKey: 'cs', actor })),
+    );
+
+    const totalChapters = 2 + extraChapterCount; // fixtures' Chapter A/B + the new ones
+    const totalGroups = 1 + extraGroups.length; // fixtures' groupA + the new ones
+    const totalOrgChannels = 2; // presidency, chapter_management
+
+    const db = getDb();
+    const selectSpy = vi.spyOn(db, 'select');
+    const insertSpy = vi.spyOn(db, 'insert');
+
+    const execScope = await loadAccessScope(directorId, 'regional_director', academicYearId);
+    const result = await listChannelsForViewer(execScope);
+
+    // Correctness first: every chapter/group really did get its channel —
+    // a fast implementation that silently provisioned fewer rows would be
+    // a worse bug than the slow one it replaced.
+    expect(result).toHaveLength(totalChapters + totalGroups + totalOrgChannels);
+
+    // The old implementation issued one INSERT per chapter, one per group,
+    // and (in the listing loop below it) two more SELECTs per accessible
+    // channel — i.e. query counts that grow with N. The fixed
+    // implementation batches every step into a handful of statements
+    // regardless of how many chapters/groups/channels exist.
+    expect(selectSpy.mock.calls.length).toBeLessThan(10);
+    expect(insertSpy.mock.calls.length).toBeLessThan(10);
+
+    selectSpy.mockRestore();
+    insertSpy.mockRestore();
+  });
+
+  it('returns a normal empty list — never throws — when there are no chapters, groups, or channels at all', async () => {
+    // A fresh org with only the Executive account and no chapters/groups/
+    // messages yet — the state right after `bootstrap-deploy.ts` creates
+    // the first Executive on a brand-new production database.
+    await resetDatabase();
+    const freshDirector = await createUser({ username: 'fresh.director', fullName: 'Fresh Director', role: 'regional_director', actor });
+    const execScope = await loadAccessScope(freshDirector.userId, 'regional_director', null);
+
+    const result = await listChannelsForViewer(execScope);
+
+    // Only the two org-wide singleton channels can exist yet; no chapters
+    // or groups means no chapter_mentors/group channels, and definitely no
+    // messages, so every unread count and lastMessageAt is a safe default.
+    expect(result.length).toBe(2);
+    expect(result.every((c) => c.unreadCount === 0 && c.lastMessageAt === null)).toBe(true);
   });
 });
