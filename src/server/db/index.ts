@@ -24,10 +24,12 @@ const globalForDb = globalThis as unknown as {
 function createClient(): postgres.Sql {
   const env = getEnv();
   return postgres(env.DATABASE_URL, {
-    // Vercel may start many short-lived function instances. Each instance
-    // therefore keeps only one client connection and lets Supabase's
-    // transaction-mode pooler (port 6543) handle concurrency globally.
-    max: env.NODE_ENV === 'production' ? 1 : 5,
+    // One instance serves many requests concurrently, so a single connection
+    // would make every query queue behind the slowest one — deep enough under
+    // load to blow the platform's function timeout. Supabase's transaction
+    // pooler admits far more clients than the instances we run, so a small
+    // per-instance pool stays well inside its budget.
+    max: 5,
     // Supabase's pooler (and Vercel's own network layer) can silently drop an
     // idle socket before postgres-js notices. Closing proactively — sooner
     // than any remote-side timeout — means the next request opens a fresh
