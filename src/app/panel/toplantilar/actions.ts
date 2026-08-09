@@ -2,7 +2,13 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAuthContext } from '@/server/auth/context';
-import { createMentorMeeting, createProgramMeeting, setMentorMeetingAttendance, updateMentorMeetingNotes } from '@/server/services/mentor-meeting-service';
+import {
+  createExecutiveMeeting,
+  createMentorMeeting,
+  createProgramMeeting,
+  setMentorMeetingAttendance,
+  updateMentorMeetingNotes,
+} from '@/server/services/mentor-meeting-service';
 import { toUserMessage } from '@/server/errors';
 
 export type MeetingActionState = { error?: string; success?: string };
@@ -60,6 +66,34 @@ export async function createProgramMeetingAction(
       endsAt,
       agenda: String(formData.get('agenda') ?? ''),
       participantUserIds,
+      actor: { id: context.user.id, name: context.user.fullName },
+    });
+    revalidatePath('/panel/toplantilar');
+    return { success: `"${meeting.title}" oluşturuldu.` };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function createExecutiveMeetingAction(
+  academicYearId: string,
+  _prev: MeetingActionState,
+  formData: FormData,
+): Promise<MeetingActionState> {
+  const context = await requireAuthContext();
+  try {
+    const startsAt = new Date(String(formData.get('startsAt')));
+    const endsAt = new Date(String(formData.get('endsAt')));
+    if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
+      return { error: 'Geçerli bir tarih/saat girin.' };
+    }
+    const meeting = await createExecutiveMeeting({
+      scope: context.scope,
+      academicYearId,
+      title: String(formData.get('title') ?? ''),
+      startsAt,
+      endsAt,
+      agenda: String(formData.get('agenda') ?? ''),
       actor: { id: context.user.id, name: context.user.fullName },
     });
     revalidatePath('/panel/toplantilar');

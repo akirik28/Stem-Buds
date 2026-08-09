@@ -22,8 +22,9 @@ export type MeetingParticipantCandidate = { userId: string; fullName: string; us
 /** Exported so the UI's edit controls render exactly when the mutating action would actually succeed. */
 export function canManageMeeting(scope: AccessScope, meeting: MentorMeeting): boolean {
   if (meeting.chapterId) return canManageChapter(scope, meeting.chapterId);
-  if (meeting.programId) return isExecutive(scope.role);
-  return false;
+  // Program-scoped and Executive-scoped meetings (the latter has neither
+  // chapterId nor programId set) are both Executive-only.
+  return isExecutive(scope.role);
 }
 
 /** The meeting's actual roster with display names — a chapter's mentor team, or a Program meeting's fixed invite list. */
@@ -251,6 +252,112 @@ export async function listMyInvitedProgramMeetings(scope: AccessScope): Promise<
     .where(and(eq(mentorMeetingAttendance.userId, scope.userId), isNull(mentorMeetings.chapterId)))
     .orderBy(mentorMeetings.startsAt);
   return rows.map((r) => r.meeting);
+}
+
+// ---------------------------------------------------------------------------
+// Executive-scoped meetings (Executive only, whole management team, participants auto-populated)
+// ---------------------------------------------------------------------------
+
+/** Every current Executive Management account — Regional Director and Vice President alike. */
+async function listCurrentExecutives(db: Database = getDb()) {
+  return db
+    .select({ userId: users.id, fullName: users.fullName, username: users.username })
+    .from(users)
+    .where(and(inArray(users.role, ['regional_director', 'vice_president']), eq(users.isActive, true)));
+}
+
+export async function listExecutiveMeetings(scope: AccessScope, academicYearId: string): Promise<MentorMeeting[]> {
+  if (!isExecutive(scope.role)) return [];
+  return getDb()
+    .select()
+    .from(mentorMeetings)
+    .where(
+      and(
+        isNull(mentorMeetings.chapterId),
+        isNull(mentorMeetings.programId),
+        eq(mentorMeetings.academicYearId, academicYearId),
+      ),
+    )
+    .orderBy(mentorMeetings.startsAt);
+}
+
+export type CreateExecutiveMeetingInput = {
+  scope: AccessScope;
+  academicYearId: string;
+  title: string;
+  startsAt: Date;
+  endsAt: Date;
+  agenda?: string | null;
+  actor: { id: string | null; name: string };
+};
+
+/**
+ * Creates a meeting for the whole Executive Management team — Regional
+ * Director(s) and Vice President(s) together, never hand-picked. Every
+ * current Executive is inserted into `mentorMeetingAttendance` at creation
+ * time, same mechanism as a Program meeting's fixed invite list, so the
+ * existing attendance/eligibility logic in `setMentorMeetingAttendance`
+ * needs no changes to support this third kind.
+ */
+export async function createExecutiveMeeting(input: CreateExecutiveMeetingInput): Promise<MentorMeeting> {
+  if (!isExecutive(input.scope.role)) throw validationError('Yönetim toplantısı oluşturma yetkiniz yok.');
+
+  const title = input.title.trim();
+  if (title.length === 0) throw validationError('Toplantı başlığı zorunludur.');
+  if (input.endsAt <= input.startsAt) throw validationError('Bitiş saati başlangıçtan sonra olmalıdır.');
+
+  return getDb().transaction(async (tx) => {
+    const [countRow] = await tx
+      .select({ value: count() })
+      .from(mentorMeetings)
+      .where(
+        and(
+          isNull(mentorMeetings.chapterId),
+          isNull(mentorMeetings.programId),
+          eq(mentorMeetings.academicYearId, input.academicYearId),
+        ),
+      );
+    const sequence = `Yönetim Toplantısı #${(countRow?.value ?? 0) + 1}`;
+
+    const [row] = await tx
+      .insert(mentorMeetings)
+      .values({
+        chapterId: null,
+        programId: null,
+        academicYearId: input.academicYearId,
+        sequence,
+        title,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+        agenda: input.agenda?.trim() || null,
+        createdById: input.actor.id,
+      })
+      .returning();
+    if (!row) throw notFound('Toplantı oluşturulamadı.');
+
+    const executives = await listCurrentExecutives(tx);
+    if (executives.length > 0) {
+      await tx
+        .insert(mentorMeetingAttendance)
+        .values(executives.map((executive) => ({ meetingId: row.id, userId: executive.userId, status: 'present' as const })));
+    }
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.mentorMeetingCreated,
+        targetType: 'mentor_meeting',
+        targetId: row.id,
+        targetLabel: row.title,
+        academicYearId: row.academicYearId,
+        after: { scope: 'executive', participantCount: executives.length },
+      },
+      tx,
+    );
+
+    return row;
+  });
 }
 
 // ---------------------------------------------------------------------------

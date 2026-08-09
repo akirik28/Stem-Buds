@@ -1,11 +1,14 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { loadAccessScope } from '@/server/auth/context';
 import {
+  canManageMeeting,
   canViewMentorMeetings,
+  createExecutiveMeeting,
   createMentorMeeting,
   createProgramMeeting,
   getMeetingParticipants,
   getMentorMeetingForViewer,
+  listExecutiveMeetings,
   listMentorMeetings,
   listMyInvitedProgramMeetings,
   listProgramMeetingCandidates,
@@ -349,5 +352,161 @@ describe('listProgramMeetings', () => {
     expect(await listProgramMeetings(execScope, onlineProgramId, academicYearId)).toHaveLength(1);
     const mentorScope = await loadAccessScope(mentorAId, 'mentor', academicYearId);
     expect(await listProgramMeetings(mentorScope, onlineProgramId, academicYearId)).toHaveLength(0);
+  });
+});
+
+describe('createExecutiveMeeting', () => {
+  it('auto-populates attendance with every current Regional Director/Vice President — never hand-picked, never a Mentor', async () => {
+    const director = await createUser({ username: 'director.test', fullName: 'Director', role: 'regional_director', actor });
+    const execScope = await loadAccessScope(director.userId, 'regional_director', academicYearId);
+    const vicePresident = await createUser({ username: 'vp.test', fullName: 'VP', role: 'vice_president', actor });
+
+    const meeting = await createExecutiveMeeting({
+      scope: execScope,
+      academicYearId,
+      title: 'Aylık Yönetim Toplantısı',
+      startsAt: new Date('2026-10-01T18:00:00Z'),
+      endsAt: new Date('2026-10-01T19:00:00Z'),
+      actor,
+    });
+
+    expect(meeting.chapterId).toBeNull();
+    expect(meeting.programId).toBeNull();
+    expect(meeting.sequence).toBe('Yönetim Toplantısı #1');
+
+    const participants = await getMeetingParticipants(meeting);
+    expect(participants.map((p) => p.userId).sort()).toEqual([director.userId, vicePresident.userId].sort());
+    expect(participants.map((p) => p.userId)).not.toContain(mentorAId);
+    expect(participants.map((p) => p.userId)).not.toContain(headAId);
+  });
+
+  it('numbers a second Executive meeting #2, independently of Program-meeting numbering in the same year', async () => {
+    const director = await createUser({ username: 'director.test', fullName: 'Director', role: 'regional_director', actor });
+    const execScope = await loadAccessScope(director.userId, 'regional_director', academicYearId);
+
+    const programMeeting = await createProgramMeeting({
+      scope: execScope,
+      programId: onlineProgramId,
+      academicYearId,
+      title: 'Program toplantısı',
+      startsAt: new Date('2026-10-01T18:00:00Z'),
+      endsAt: new Date('2026-10-01T19:00:00Z'),
+      participantUserIds: [mentorAId],
+      actor,
+    });
+    const execMeeting1 = await createExecutiveMeeting({
+      scope: execScope,
+      academicYearId,
+      title: 'Yönetim 1',
+      startsAt: new Date('2026-10-02T18:00:00Z'),
+      endsAt: new Date('2026-10-02T19:00:00Z'),
+      actor,
+    });
+    const execMeeting2 = await createExecutiveMeeting({
+      scope: execScope,
+      academicYearId,
+      title: 'Yönetim 2',
+      startsAt: new Date('2026-10-03T18:00:00Z'),
+      endsAt: new Date('2026-10-03T19:00:00Z'),
+      actor,
+    });
+
+    expect(programMeeting.sequence).toBe('Mentor Toplantısı #1');
+    expect(execMeeting1.sequence).toBe('Yönetim Toplantısı #1');
+    expect(execMeeting2.sequence).toBe('Yönetim Toplantısı #2');
+  });
+
+  it('rejects a non-Executive creating a Yönetim Toplantısı', async () => {
+    const headScope = await loadAccessScope(headAId, 'chapter_head', academicYearId);
+    await expect(
+      createExecutiveMeeting({
+        scope: headScope,
+        academicYearId,
+        title: 'x',
+        startsAt: new Date('2026-10-01T18:00:00Z'),
+        endsAt: new Date('2026-10-01T19:00:00Z'),
+        actor,
+      }),
+    ).rejects.toSatisfy((error: unknown) => isAppError(error) && error.code === 'validation');
+
+    const mentorScope = await loadAccessScope(mentorAId, 'mentor', academicYearId);
+    await expect(
+      createExecutiveMeeting({
+        scope: mentorScope,
+        academicYearId,
+        title: 'x',
+        startsAt: new Date('2026-10-01T18:00:00Z'),
+        endsAt: new Date('2026-10-01T19:00:00Z'),
+        actor,
+      }),
+    ).rejects.toSatisfy((error: unknown) => isAppError(error) && error.code === 'validation');
+  });
+
+  it('rejects an end time at or before the start time', async () => {
+    const director = await createUser({ username: 'director.test', fullName: 'Director', role: 'regional_director', actor });
+    const execScope = await loadAccessScope(director.userId, 'regional_director', academicYearId);
+    await expect(
+      createExecutiveMeeting({
+        scope: execScope,
+        academicYearId,
+        title: 'x',
+        startsAt: new Date('2026-10-01T19:00:00Z'),
+        endsAt: new Date('2026-10-01T18:00:00Z'),
+        actor,
+      }),
+    ).rejects.toSatisfy((error: unknown) => isAppError(error) && error.code === 'validation');
+  });
+});
+
+describe('listExecutiveMeetings', () => {
+  it('only an Executive may list Yönetim Toplantısı meetings', async () => {
+    const director = await createUser({ username: 'director.test', fullName: 'Director', role: 'regional_director', actor });
+    const execScope = await loadAccessScope(director.userId, 'regional_director', academicYearId);
+    await createExecutiveMeeting({
+      scope: execScope,
+      academicYearId,
+      title: 'x',
+      startsAt: new Date('2026-10-01T18:00:00Z'),
+      endsAt: new Date('2026-10-01T19:00:00Z'),
+      actor,
+    });
+
+    expect(await listExecutiveMeetings(execScope, academicYearId)).toHaveLength(1);
+    const mentorScope = await loadAccessScope(mentorAId, 'mentor', academicYearId);
+    expect(await listExecutiveMeetings(mentorScope, academicYearId)).toHaveLength(0);
+    const headScope = await loadAccessScope(headAId, 'chapter_head', academicYearId);
+    expect(await listExecutiveMeetings(headScope, academicYearId)).toHaveLength(0);
+  });
+
+  it('never mixes chapter- or Program-scoped meetings into the Executive list', async () => {
+    const director = await createUser({ username: 'director.test', fullName: 'Director', role: 'regional_director', actor });
+    const execScope = await loadAccessScope(director.userId, 'regional_director', academicYearId);
+    const headScope = await loadAccessScope(headAId, 'chapter_head', academicYearId);
+
+    await createMentorMeeting({ scope: headScope, chapterId: chapterAId, academicYearId, title: 'chapter', startsAt: new Date('2026-10-01T18:00:00Z'), endsAt: new Date('2026-10-01T19:00:00Z'), actor });
+    await createProgramMeeting({ scope: execScope, programId: onlineProgramId, academicYearId, title: 'program', startsAt: new Date('2026-10-01T18:00:00Z'), endsAt: new Date('2026-10-01T19:00:00Z'), participantUserIds: [mentorAId], actor });
+
+    expect(await listExecutiveMeetings(execScope, academicYearId)).toHaveLength(0);
+  });
+});
+
+describe('Executive meeting visibility and management', () => {
+  it('a Mentor (never a participant) cannot view a Yönetim Toplantısı; an Executive can', async () => {
+    const director = await createUser({ username: 'director.test', fullName: 'Director', role: 'regional_director', actor });
+    const execScope = await loadAccessScope(director.userId, 'regional_director', academicYearId);
+    const meeting = await createExecutiveMeeting({
+      scope: execScope,
+      academicYearId,
+      title: 'x',
+      startsAt: new Date('2026-10-01T18:00:00Z'),
+      endsAt: new Date('2026-10-01T19:00:00Z'),
+      actor,
+    });
+
+    const mentorScope = await loadAccessScope(mentorAId, 'mentor', academicYearId);
+    expect(await getMentorMeetingForViewer(mentorScope, meeting.id)).toBeNull();
+    expect(await getMentorMeetingForViewer(execScope, meeting.id)).not.toBeNull();
+    expect(canManageMeeting(execScope, meeting)).toBe(true);
+    expect(canManageMeeting(mentorScope, meeting)).toBe(false);
   });
 });

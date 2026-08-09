@@ -27,7 +27,7 @@ export default async function MentorMeetingDetailPage({ params }: { params: Prom
     ? (await getChapterById(meeting.chapterId))?.name
     : meeting.programId
       ? (await getProgramById(meeting.programId))?.shortName
-      : null;
+      : 'Yönetim Ekibi';
   const canManage = canManageMeeting(context.scope, meeting);
 
   const [participants, attendance] = await Promise.all([getMeetingParticipants(meeting), listMentorMeetingAttendance(meeting.id)]);

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "mentor_meetings_executive_year_sequence_unique" ON "mentor_meetings" USING btree ("academic_year_id","sequence") WHERE "mentor_meetings"."chapter_id" is null and "mentor_meetings"."program_id" is null;

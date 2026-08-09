@@ -3,7 +3,13 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireAuthContext } from '@/server/auth/context';
 import { canManageChapter, isAdvisorTeacher, isChapterHead, isExecutive, isMentor, isStudent } from '@/server/authz/policy';
-import { listMentorMeetings, listMyInvitedProgramMeetings, listProgramMeetingCandidates, listProgramMeetings } from '@/server/services/mentor-meeting-service';
+import {
+  listExecutiveMeetings,
+  listMentorMeetings,
+  listMyInvitedProgramMeetings,
+  listProgramMeetingCandidates,
+  listProgramMeetings,
+} from '@/server/services/mentor-meeting-service';
 import { listChapters } from '@/server/services/chapter-service';
 import { listPrograms } from '@/server/services/program-service';
 import { getActiveAcademicYear } from '@/server/services/academic-year';
@@ -11,6 +17,7 @@ import { Card, CardTitle, EmptyState } from '@/components/ui/card';
 import { formatDateTimeTr } from '@/lib/format';
 import { CreateMeetingForm } from './create-meeting-form';
 import { CreateProgramMeetingForm } from './create-program-meeting-form';
+import { CreateExecutiveMeetingForm } from './create-executive-meeting-form';
 
 export const metadata: Metadata = {
   title: 'Mentor Toplantıları',
@@ -46,13 +53,14 @@ export default async function MentorMeetingsPage({
   const { chapter: chapterParam, program: programParam, scope: scopeParam } = await searchParams;
   const academicYear = await getActiveAcademicYear();
   const exec = isExecutive(context.scope.role);
-  const viewScope: 'chapter' | 'program' = exec && scopeParam === 'program' ? 'program' : 'chapter';
+  const viewScope: 'chapter' | 'program' | 'executive' =
+    exec && scopeParam === 'program' ? 'program' : exec && scopeParam === 'executive' ? 'executive' : 'chapter';
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-navy-900">Mentor Toplantıları</h1>
-        <p className="mt-1 text-sm text-navy-500">Chapter Head ve mentor ekipleriyle, ya da Program çapında toplantı gündemi ve kararlar.</p>
+        <p className="mt-1 text-sm text-navy-500">Chapter Head ve mentor ekipleriyle, Program çapında, ya da Yönetim ekibiyle toplantı gündemi ve kararlar.</p>
       </div>
 
       {exec ? (
@@ -77,6 +85,16 @@ export default async function MentorMeetingsPage({
           >
             Program Toplantıları
           </Link>
+          <Link
+            href="/panel/toplantilar?scope=executive"
+            className={
+              viewScope === 'executive'
+                ? 'inline-flex min-h-9 items-center rounded-full bg-navy-800 px-3.5 text-sm font-medium text-white'
+                : 'inline-flex min-h-9 items-center rounded-full bg-white px-3.5 text-sm font-medium text-navy-600 ring-1 ring-inset ring-navy-200 hover:bg-navy-50'
+            }
+          >
+            Yönetim Toplantısı
+          </Link>
         </nav>
       ) : null}
 
@@ -84,6 +102,8 @@ export default async function MentorMeetingsPage({
         <EmptyState title="Aktif akademik yıl bulunamadı." />
       ) : viewScope === 'program' ? (
         <ProgramMeetingsView programParam={programParam} academicYearId={academicYear.id} />
+      ) : viewScope === 'executive' ? (
+        <ExecutiveMeetingsView academicYearId={academicYear.id} />
       ) : (
         <ChapterMeetingsView context={context} chapterParam={chapterParam} academicYearId={academicYear.id} exec={exec} />
       )}
@@ -202,6 +222,26 @@ async function ProgramMeetingsView({ programParam, academicYearId }: { programPa
           <MeetingList meetings={meetings} />
         </>
       )}
+    </div>
+  );
+}
+
+async function ExecutiveMeetingsView({ academicYearId }: { academicYearId: string }) {
+  const context = await requireAuthContext();
+  const meetings = await listExecutiveMeetings(context.scope, academicYearId);
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardTitle>Yeni Yönetim Toplantısı</CardTitle>
+        <p className="mt-1 text-sm text-navy-500">
+          Katılımcı seçimi yok — mevcut tüm Regional Director ve Vice President hesapları otomatik olarak eklenir.
+        </p>
+        <div className="mt-3">
+          <CreateExecutiveMeetingForm academicYearId={academicYearId} />
+        </div>
+      </Card>
+      <MeetingList meetings={meetings} />
     </div>
   );
 }

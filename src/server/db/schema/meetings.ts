@@ -16,14 +16,20 @@ import { programs } from './programs';
 import { meetingAttendanceEnum } from './enums';
 
 /**
- * A meeting is either **chapter-scoped** (`chapterId` set, `programId`
- * null — a Chapter Head ↔ mentor meeting for that one chapter, the
- * original shape) or **Program-scoped** (`programId` set, `chapterId`
- * null — Regional Director/Vice President meeting with hand-picked
- * participants across a whole Program, never mixing BİLSEM and Online
- * Ortaokul in the same meeting). Application code enforces "exactly one
- * of the two", not a DB constraint — consistent with this codebase's
- * existing preference for app-level cross-field validation.
+ * A meeting is one of three kinds, distinguished by which of
+ * `chapterId`/`programId` is set — application code enforces this, not a
+ * DB constraint, consistent with this codebase's existing preference for
+ * app-level cross-field validation:
+ *  - **chapter-scoped** (`chapterId` set, `programId` null) — a Chapter
+ *    Head ↔ mentor meeting for that one chapter, the original shape.
+ *  - **Program-scoped** (`programId` set, `chapterId` null) — Regional
+ *    Director/Vice President meeting with hand-picked participants across
+ *    a whole Program, never mixing BİLSEM and Online Ortaokul in the same
+ *    meeting.
+ *  - **Executive-scoped** (both null) — a Regional Director/Vice
+ *    President meeting with the organization's whole Executive Management
+ *    team; participants are every current `regional_director`/
+ *    `vice_president` account, populated automatically, never hand-picked.
  */
 export const mentorMeetings = pgTable(
   'mentor_meetings',
@@ -68,6 +74,11 @@ export const mentorMeetings = pgTable(
     uniqueIndex('mentor_meetings_program_year_sequence_unique')
       .on(table.programId, table.academicYearId, table.sequence)
       .where(sql`${table.programId} is not null`),
+    // Same NULL-uniqueness reasoning again, this time isolating the third
+    // (Executive-scoped) kind: both chapterId and programId are NULL.
+    uniqueIndex('mentor_meetings_executive_year_sequence_unique')
+      .on(table.academicYearId, table.sequence)
+      .where(sql`${table.chapterId} is null and ${table.programId} is null`),
   ],
 );
 
