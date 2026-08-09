@@ -39,7 +39,12 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  serverExternalPackages: ['@node-rs/argon2', 'pg', 'exceljs', 'nodemailer'],
+  serverExternalPackages: ['@node-rs/argon2', 'exceljs', 'nodemailer'],
+  experimental: {
+    // Vercel Functions cap request bodies at 4.5 MB. Public-site media is
+    // limited to 4 MB, leaving room for the multipart Server Action envelope.
+    serverActions: { bodySizeLimit: '4.25mb' },
+  },
   async headers() {
     return [
       {

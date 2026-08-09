@@ -3,7 +3,7 @@ import { getDb, type Database } from '@/server/db';
 import { advisorProgramScopes, chapterMemberships, groupMemberships, groups, profiles, users } from '@/server/db/schema';
 import { conflict, notFound, validationError } from '@/server/errors';
 import { destroyAllSessionsForUser } from '@/server/auth/session';
-import { generateTemporaryPassword, hashPassword } from '@/server/auth/password';
+import { checkPasswordPolicy, generateTemporaryPassword, hashPassword } from '@/server/auth/password';
 import { EXECUTIVE_ROLES, isExecutive, type UserRole } from '@/server/authz/policy';
 import { AUDIT_ACTIONS, recordAudit } from './audit';
 import { sendEmail } from './email-service';
@@ -29,6 +29,8 @@ export type CreateUserInput = {
   actor: { id: string | null; name: string };
   /** Injected only by tests; production always uses the env-selected e-mail provider. */
   emailProvider?: EmailProvider;
+  /** Internal deployment bootstrap only; normal account creation stays random. */
+  temporaryPassword?: string;
 };
 
 export type CreatedUser = {
@@ -68,7 +70,10 @@ export async function createUser(input: CreateUserInput): Promise<CreatedUser> {
     throw validationError('Danışman Öğretmen için en az bir program seçilmelidir.');
   }
 
-  const temporaryPassword = generateTemporaryPassword();
+  const temporaryPassword = input.temporaryPassword ?? generateTemporaryPassword();
+  if (input.temporaryPassword && !checkPasswordPolicy(temporaryPassword, username).ok) {
+    throw validationError('İlk yönetici parolası güvenlik koşullarını karşılamıyor.');
+  }
   const passwordHash = await hashPassword(temporaryPassword);
   const db = getDb();
 

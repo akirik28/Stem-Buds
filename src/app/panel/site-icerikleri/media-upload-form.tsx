@@ -26,7 +26,7 @@ export function MediaUploadForm() {
           {state.error}
         </Alert>
       ) : null}
-      <Field label="Görsel" htmlFor="media-file" hint="JPEG, PNG, WEBP veya GIF · en fazla 5 MB" required>
+      <Field label="Görsel" htmlFor="media-file" hint="JPEG, PNG, WEBP veya GIF · en fazla 4 MB" required>
         <Input id="media-file" name="file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required />
       </Field>
       <Field label="Alternatif metin" htmlFor="media-altText" required>

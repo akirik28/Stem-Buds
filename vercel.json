@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run db:migrate && npm run storage:setup && npm run bootstrap:deploy && npm run build",
+  "crons": [
+    {
+      "path": "/api/jobs/run",
+      "schedule": "0 4 * * *"
+    }
+  ]
+}

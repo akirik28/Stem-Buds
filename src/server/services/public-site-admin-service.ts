@@ -1,6 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, unlink, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { getDb } from '@/server/db';
 import {
@@ -11,7 +9,7 @@ import {
   publicNewsPosts,
 } from '@/server/db/schema';
 import { conflict, notFound, validationError } from '@/server/errors';
-import { getEnv } from '@/server/env';
+import { deleteStorageObject, writeStorageObject } from '@/server/storage';
 import { AUDIT_ACTIONS, recordAudit } from './audit';
 import type { PublicHighlight, PublicLeadershipProfile, PublicMedia, PublicNewsPost } from './public-site-service';
 
@@ -333,7 +331,7 @@ const ALLOWED_IMAGE_TYPES: Record<string, string> = {
   'image/gif': 'gif',
 };
 
-const MAX_MEDIA_BYTES = 5 * 1024 * 1024;
+const MAX_MEDIA_BYTES = 4 * 1024 * 1024;
 
 export async function listAllMedia(): Promise<PublicMedia[]> {
   return getDb().select().from(publicMedia).orderBy(desc(publicMedia.createdAt));
@@ -348,38 +346,43 @@ export type UploadPublicMediaInput = {
 };
 
 /**
- * Writes an uploaded image to `UPLOAD_DIR/public-media/` under a random,
- * server-generated name — the on-disk key is never derived from the
- * client-supplied file name, so nothing about the request can influence
- * where on disk the file lands.
+ * Writes an uploaded image under a random, server-generated object key. The
+ * key is never derived from the client-supplied file name, so nothing about
+ * the request can influence where the object lands.
  */
 export async function uploadPublicMedia(input: UploadPublicMediaInput): Promise<PublicMedia> {
   const extension = ALLOWED_IMAGE_TYPES[input.contentType];
   if (!extension) throw validationError('Yalnızca JPEG, PNG, WEBP veya GIF görseli yükleyebilirsiniz.');
   if (input.bytes.byteLength === 0) throw validationError('Dosya boş.');
-  if (input.bytes.byteLength > MAX_MEDIA_BYTES) throw validationError('Dosya 5 MB sınırını aşıyor.');
+  if (input.bytes.byteLength > MAX_MEDIA_BYTES) throw validationError('Dosya 4 MB sınırını aşıyor.');
 
   const altText = input.altText.trim();
   if (altText.length < 2) throw validationError('Alternatif metin en az 2 karakter olmalıdır.');
 
-  const storageKey = path.join('public-media', `${randomUUID()}.${extension}`);
-  const uploadDir = path.resolve(getEnv().UPLOAD_DIR);
-  const filePath = path.resolve(uploadDir, storageKey);
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, input.bytes);
+  const storageKey = `public-media/${randomUUID()}.${extension}`;
+  await writeStorageObject({ storageKey, bytes: input.bytes, contentType: input.contentType });
 
-  const [created] = await getDb()
-    .insert(publicMedia)
-    .values({
-      fileName: input.fileName.slice(0, 255),
-      contentType: input.contentType,
-      byteSize: input.bytes.byteLength,
-      storageKey,
-      altText,
-      uploadedById: input.actor.id,
-    })
-    .returning();
-  if (!created) throw notFound('Görsel kaydedilemedi.');
+  let created: PublicMedia | undefined;
+  try {
+    [created] = await getDb()
+      .insert(publicMedia)
+      .values({
+        fileName: input.fileName.slice(0, 255),
+        contentType: input.contentType,
+        byteSize: input.bytes.byteLength,
+        storageKey,
+        altText,
+        uploadedById: input.actor.id,
+      })
+      .returning();
+  } catch (error) {
+    await deleteStorageObject(storageKey).catch(() => undefined);
+    throw error;
+  }
+  if (!created) {
+    await deleteStorageObject(storageKey).catch(() => undefined);
+    throw notFound('Görsel kaydedilemedi.');
+  }
   await recordAudit({
     actorUserId: input.actor.id,
     actorName: input.actor.name,
@@ -395,11 +398,7 @@ export async function deletePublicMedia(id: string, actor: Actor): Promise<void>
   const [deleted] = await getDb().delete(publicMedia).where(eq(publicMedia.id, id)).returning();
   if (!deleted) throw notFound('Görsel bulunamadı.');
 
-  const uploadDir = path.resolve(getEnv().UPLOAD_DIR);
-  const filePath = path.resolve(uploadDir, deleted.storageKey);
-  if (filePath.startsWith(uploadDir)) {
-    await unlink(filePath).catch(() => undefined);
-  }
+  await deleteStorageObject(deleted.storageKey).catch(() => undefined);
 
   await recordAudit({
     actorUserId: actor.id,

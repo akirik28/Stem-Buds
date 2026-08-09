@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { POST } from '@/app/api/jobs/run/route';
+import { GET, POST } from '@/app/api/jobs/run/route';
 
 /**
  * `getEnv()` caches its parsed result for the lifetime of the process, so
@@ -25,6 +25,15 @@ describe('POST /api/jobs/run', () => {
   it('never runs the job for a request with no Authorization header at all', async () => {
     const request = new Request('http://localhost/api/jobs/run', { method: 'POST' });
     const response = await POST(request);
+    expect(response.status).not.toBe(200);
+  });
+
+  it('protects the GET endpoint used by Vercel Cron with the same bearer authentication', async () => {
+    const request = new Request('http://localhost/api/jobs/run', {
+      method: 'GET',
+      headers: { authorization: 'Bearer definitely-not-the-real-token' },
+    });
+    const response = await GET(request);
     expect(response.status).not.toBe(200);
   });
 });
