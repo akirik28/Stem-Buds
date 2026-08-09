@@ -32,7 +32,12 @@ function createClient(): postgres.Sql {
     // therefore keeps only one client connection and lets Supabase's
     // transaction-mode pooler (port 6543) handle concurrency globally.
     max: env.NODE_ENV === 'production' ? 1 : 5,
-    idle_timeout: 30,
+    // Supabase's pooler (and Vercel's own network layer) can silently drop an
+    // idle socket before postgres-js notices. Closing proactively — sooner
+    // than any remote-side timeout — means the next request opens a fresh
+    // connection instead of reusing one that's already dead.
+    idle_timeout: 20,
+    max_lifetime: 60 * 30,
     connect_timeout: 10,
     prepare: false,
     // Routine, expected notices (e.g. "already exists, skipping" on a
