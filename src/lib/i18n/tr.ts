@@ -8,7 +8,7 @@
 
 export const roleLabels = {
   regional_director: 'Regional Director',
-  vice_president: 'Vice President',
+  vice_president: 'Vice Director',
   chapter_head: 'Chapter Head',
   mentor: 'Mentor',
   student: 'Öğrenci',

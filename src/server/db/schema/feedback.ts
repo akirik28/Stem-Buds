@@ -34,7 +34,7 @@ export const feedbackCycles = pgTable(
       .references(() => groupMemberships.id, { onDelete: 'cascade' }),
     academicYearId: uuid('academic_year_id')
       .notNull()
-      .references(() => academicYears.id, { onDelete: 'restrict' }),
+      .references(() => academicYears.id, { onDelete: 'cascade' }),
     /** Number of completed sessions that triggered this cycle: 3, 6, 9, ... */
     completedSessionThreshold: integer('completed_session_threshold').notNull(),
     triggeredAt: timestamp('triggered_at', { withTimezone: true }).notNull().defaultNow(),
@@ -94,10 +94,10 @@ export const continuousFeedback = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     chapterId: uuid('chapter_id')
       .notNull()
-      .references(() => chapters.id, { onDelete: 'restrict' }),
+      .references(() => chapters.id, { onDelete: 'cascade' }),
     academicYearId: uuid('academic_year_id')
       .notNull()
-      .references(() => academicYears.id, { onDelete: 'restrict' }),
+      .references(() => academicYears.id, { onDelete: 'cascade' }),
     groupId: uuid('group_id').references(() => groups.id, { onDelete: 'set null' }),
 
     category: feedbackCategoryEnum('category').notNull(),
@@ -134,10 +134,10 @@ export const complaints = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     chapterId: uuid('chapter_id')
       .notNull()
-      .references(() => chapters.id, { onDelete: 'restrict' }),
+      .references(() => chapters.id, { onDelete: 'cascade' }),
     academicYearId: uuid('academic_year_id')
       .notNull()
-      .references(() => academicYears.id, { onDelete: 'restrict' }),
+      .references(() => academicYears.id, { onDelete: 'cascade' }),
 
     category: complaintCategoryEnum('category').notNull(),
     subject: varchar('subject', { length: 200 }).notNull(),

@@ -235,7 +235,7 @@ async function ExecutiveMeetingsView({ academicYearId }: { academicYearId: strin
       <Card>
         <CardTitle>Yeni Yönetim Toplantısı</CardTitle>
         <p className="mt-1 text-sm text-navy-500">
-          Katılımcı seçimi yok — mevcut tüm Regional Director ve Vice President hesapları otomatik olarak eklenir.
+          Katılımcı seçimi yok — mevcut tüm Regional Director ve Vice Director hesapları otomatik olarak eklenir.
         </p>
         <div className="mt-3">
           <CreateExecutiveMeetingForm academicYearId={academicYearId} />

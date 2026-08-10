@@ -34,12 +34,12 @@ import { isAppError } from '@/server/errors';
 import { closeTestDb, resetDatabase } from '../helpers/db';
 
 /**
- * Safe delete/archive across every entity that had no lifecycle path before
- * this audit: Chapters, Groups, Users, Academic Years. The rule throughout:
- * hard-delete only when there is genuinely nothing to lose (proven by an
- * explicit application-level check, not just "the FK happened not to
- * fire"), archive/deactivate otherwise — history is never silently
- * destroyed.
+ * Delete/archive across every entity that had no lifecycle path before this
+ * audit: Chapters, Groups, Users, Academic Years. Hard-delete is always
+ * allowed and cascades everything scoped to the deleted row at the database
+ * level; archive/deactivate remains available as the non-destructive option.
+ * The only two operational guards left are: an account can't delete itself,
+ * and the active academic year can't be deleted out from under the app.
  */
 
 const actor = { id: null, name: 'test-suite' };
@@ -91,17 +91,17 @@ describe('chapter lifecycle', () => {
     expect(logs[0]?.targetId).toBe(chapter.id);
   });
 
-  it('refuses to delete a chapter that has a group', async () => {
+  it('hard-deletes a chapter that has a group, cascading it', async () => {
     const chapter = await createChapter({ programId: onlineProgramId, code: 'UAA', name: 'Chapter A', actor });
-    await createGroup({ chapterId: chapter.id, academicYearId, disciplineKey: 'bio', actor });
+    const group = await createGroup({ chapterId: chapter.id, academicYearId, disciplineKey: 'bio', actor });
 
-    await expect(deleteChapter({ id: chapter.id, actor })).rejects.toSatisfy(
-      (error: unknown) => isAppError(error) && error.code === 'validation',
-    );
-    expect(await getChapterById(chapter.id)).not.toBeNull();
+    await deleteChapter({ id: chapter.id, actor });
+
+    expect(await getChapterById(chapter.id)).toBeNull();
+    expect(await getGroupById(group.id)).toBeNull();
   });
 
-  it('refuses to delete a chapter that has a member, even with zero groups', async () => {
+  it('hard-deletes a chapter that has a member, even with zero groups', async () => {
     const chapter = await createChapter({ programId: onlineProgramId, code: 'UAA', name: 'Chapter A', actor });
     await createUser({
       username: 'mentor.only',
@@ -112,9 +112,9 @@ describe('chapter lifecycle', () => {
       actor,
     });
 
-    await expect(deleteChapter({ id: chapter.id, actor })).rejects.toSatisfy(
-      (error: unknown) => isAppError(error) && error.code === 'validation',
-    );
+    await deleteChapter({ id: chapter.id, actor });
+
+    expect(await getChapterById(chapter.id)).toBeNull();
   });
 });
 
@@ -137,7 +137,25 @@ describe('group lifecycle', () => {
     expect(await getGroupById(group.id)).toBeNull();
   });
 
-  it('refuses to delete a group that has a member', async () => {
+  it('hard-deletes an otherwise unused group whose only membership is its assigned mentor', async () => {
+    const chapter = await createChapter({ programId: onlineProgramId, code: 'UAA', name: 'Chapter A', actor });
+    const group = await createGroup({ chapterId: chapter.id, academicYearId, disciplineKey: 'eng', actor });
+    const mentor = await createUser({
+      username: 'mentor.draft',
+      fullName: 'Draft Mentor',
+      role: 'mentor',
+      chapterId: chapter.id,
+      academicYearId,
+      actor,
+    });
+    await assignGroupMentor({ groupId: group.id, mentorUserId: mentor.userId, actor });
+
+    await deleteGroup({ id: group.id, actor });
+
+    expect(await getGroupById(group.id)).toBeNull();
+  });
+
+  it('hard-deletes a group that has a member, cascading the membership', async () => {
     const chapter = await createChapter({ programId: onlineProgramId, code: 'UAA', name: 'Chapter A', actor });
     const group = await createGroup({ chapterId: chapter.id, academicYearId, disciplineKey: 'bio', actor });
     const student = await createUser({
@@ -150,13 +168,12 @@ describe('group lifecycle', () => {
     });
     await addGroupMember({ groupId: group.id, userId: student.userId, role: 'student', actor });
 
-    await expect(deleteGroup({ id: group.id, actor })).rejects.toSatisfy(
-      (error: unknown) => isAppError(error) && error.code === 'validation',
-    );
-    expect(await getGroupById(group.id)).not.toBeNull();
+    await deleteGroup({ id: group.id, actor });
+
+    expect(await getGroupById(group.id)).toBeNull();
   });
 
-  it('refuses to delete a group that has weekly sessions generated', async () => {
+  it('hard-deletes a group that has weekly sessions generated, cascading them', async () => {
     const chapter = await createChapter({ programId: onlineProgramId, code: 'UAA', name: 'Chapter A', actor });
     const group = await createGroup({ chapterId: chapter.id, academicYearId, disciplineKey: 'bio', actor });
     await updateProgramSchedule({
@@ -168,30 +185,29 @@ describe('group lifecycle', () => {
     });
     await generateWeeklySessionsForGroup(group.id);
 
-    await expect(deleteGroup({ id: group.id, actor })).rejects.toSatisfy(
-      (error: unknown) => isAppError(error) && error.code === 'validation',
-    );
+    await deleteGroup({ id: group.id, actor });
+
+    expect(await getGroupById(group.id)).toBeNull();
   });
 });
 
-describe('user deletion — only a genuinely unused account', () => {
+describe('user deletion — unconditional except self-deletion', () => {
   it('hard-deletes a never-logged-in user with no membership history', async () => {
     const user = await createUser({ username: 'test.unused', fullName: 'Test Unused', role: 'vice_president', actor });
     await deleteUser({ targetUserId: user.userId, actor });
     expect(await getUserById(user.userId)).toBeNull();
   });
 
-  it('refuses to delete a user who has ever logged in', async () => {
+  it('hard-deletes a user who has ever logged in', async () => {
     const user = await createUser({ username: 'test.loggedin', fullName: 'Test Loggedin', role: 'vice_president', actor });
     await getDb().update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.userId));
 
-    await expect(deleteUser({ targetUserId: user.userId, actor })).rejects.toSatisfy(
-      (error: unknown) => isAppError(error) && error.code === 'validation',
-    );
-    expect(await getUserById(user.userId)).not.toBeNull();
+    await deleteUser({ targetUserId: user.userId, actor });
+
+    expect(await getUserById(user.userId)).toBeNull();
   });
 
-  it('refuses to delete a user with chapter membership history', async () => {
+  it('hard-deletes a user with chapter membership history, cascading it', async () => {
     const chapter = await createChapter({ programId: onlineProgramId, code: 'UAA', name: 'Chapter A', actor });
     const mentor = await createUser({
       username: 'mentor.history',
@@ -202,12 +218,12 @@ describe('user deletion — only a genuinely unused account', () => {
       actor,
     });
 
-    await expect(deleteUser({ targetUserId: mentor.userId, actor })).rejects.toSatisfy(
-      (error: unknown) => isAppError(error) && error.code === 'validation',
-    );
+    await deleteUser({ targetUserId: mentor.userId, actor });
+
+    expect(await getUserById(mentor.userId)).toBeNull();
   });
 
-  it('refuses to delete a user who is assigned as a group’s mentor', async () => {
+  it('hard-deletes a user assigned as a group’s mentor, nulling the group’s mentor reference', async () => {
     const chapter = await createChapter({ programId: onlineProgramId, code: 'UAA', name: 'Chapter A', actor });
     const group = await createGroup({ chapterId: chapter.id, academicYearId, disciplineKey: 'bio', actor });
     const mentor = await createUser({
@@ -220,9 +236,10 @@ describe('user deletion — only a genuinely unused account', () => {
     });
     await assignGroupMentor({ groupId: group.id, mentorUserId: mentor.userId, actor });
 
-    await expect(deleteUser({ targetUserId: mentor.userId, actor })).rejects.toSatisfy(
-      (error: unknown) => isAppError(error) && error.code === 'validation',
-    );
+    await deleteUser({ targetUserId: mentor.userId, actor });
+
+    expect(await getUserById(mentor.userId)).toBeNull();
+    expect((await getGroupById(group.id))?.mentorUserId).toBeNull();
   });
 
   it('refuses to let an account delete itself', async () => {
@@ -252,7 +269,7 @@ describe('academic year deletion', () => {
     expect(await getAcademicYearById(unusedYear.id)).toBeNull();
   });
 
-  it('refuses to delete an inactive year that has real history', async () => {
+  it('hard-deletes an inactive year that has real history, cascading its groups', async () => {
     const usedYear = await createAcademicYear({
       label: '2025–2026',
       startDate: '2025-09-01',
@@ -261,12 +278,13 @@ describe('academic year deletion', () => {
       actor,
     });
     const chapter = await createChapter({ programId: onlineProgramId, code: 'UAA', name: 'Chapter A', actor });
-    await createGroup({ chapterId: chapter.id, academicYearId: usedYear.id, disciplineKey: 'bio', actor });
+    const group = await createGroup({ chapterId: chapter.id, academicYearId: usedYear.id, disciplineKey: 'bio', actor });
 
-    await expect(deleteAcademicYear({ id: usedYear.id, actor })).rejects.toSatisfy(
-      (error: unknown) => isAppError(error) && error.code === 'validation',
-    );
-    expect(await getAcademicYearById(usedYear.id)).not.toBeNull();
+    await deleteAcademicYear({ id: usedYear.id, actor });
+
+    expect(await getAcademicYearById(usedYear.id)).toBeNull();
+    expect(await getGroupById(group.id)).toBeNull();
+    expect(await getChapterById(chapter.id)).not.toBeNull();
   });
 });
 

@@ -39,7 +39,7 @@ export const mentorMeetings = pgTable(
     programId: uuid('program_id').references(() => programs.id, { onDelete: 'cascade' }),
     academicYearId: uuid('academic_year_id')
       .notNull()
-      .references(() => academicYears.id, { onDelete: 'restrict' }),
+      .references(() => academicYears.id, { onDelete: 'cascade' }),
 
     /** Sequence within the chapter-or-program/year, e.g. "Mentor Toplantısı #4". */
     sequence: text('sequence').notNull(),

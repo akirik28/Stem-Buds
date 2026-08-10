@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { getDb } from '@/server/db';
-import { chapterMemberships, chapters, groupMemberships, groups, users, weeklySessions } from '@/server/db/schema';
+import { chapterMemberships, chapters, groupMemberships, groups, users } from '@/server/db/schema';
 import { conflict, notFound, validationError } from '@/server/errors';
 import { disciplineCodes, type DisciplineKey } from '@/lib/i18n/tr';
 import type { UserRole } from '@/server/authz/policy';
@@ -472,12 +472,10 @@ export async function reactivateGroup(input: {
 }
 
 /**
- * Hard-deletes a group — safe only when it was never actually used: no
- * members (student or mentor) and no weekly sessions generated yet. Unlike
- * `chapters`, both `group_memberships` and `weekly_sessions` cascade on
- * `group_id` at the database level, so this application-level check is the
- * real safety net, not a backstop — a group with any history must be
- * archived with `archiveGroup` instead, never hard-deleted.
+ * Hard-deletes a group, unconditionally — every foreign key on `group_id`
+ * (memberships, weekly sessions, homework, projects, channels, ...) is
+ * `CASCADE` at the database level, so this always removes the group and
+ * everything scoped to it.
  */
 export async function deleteGroup(input: {
   id: string;
@@ -486,20 +484,6 @@ export async function deleteGroup(input: {
   await getDb().transaction(async (tx) => {
     const [target] = await tx.select().from(groups).where(eq(groups.id, input.id)).limit(1);
     if (!target) throw notFound('Grup bulunamadı.');
-
-    const [membership] = await tx
-      .select({ id: groupMemberships.id })
-      .from(groupMemberships)
-      .where(eq(groupMemberships.groupId, input.id))
-      .limit(1);
-    const [session] = await tx
-      .select({ id: weeklySessions.id })
-      .from(weeklySessions)
-      .where(eq(weeklySessions.groupId, input.id))
-      .limit(1);
-    if (membership || session) {
-      throw validationError('Bu gruba ait üyelik veya oturum kayıtları var; silmek yerine pasifleştirin.');
-    }
 
     await tx.delete(groups).where(eq(groups.id, input.id));
 

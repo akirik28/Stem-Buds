@@ -36,7 +36,7 @@ export const weeklySessions = pgTable(
       .references(() => groups.id, { onDelete: 'cascade' }),
     academicYearId: uuid('academic_year_id')
       .notNull()
-      .references(() => academicYears.id, { onDelete: 'restrict' }),
+      .references(() => academicYears.id, { onDelete: 'cascade' }),
 
     /** 1-based week index inside the academic year. */
     weekNumber: integer('week_number').notNull(),

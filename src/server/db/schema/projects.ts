@@ -29,10 +29,10 @@ export const projects = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     groupId: uuid('group_id')
       .notNull()
-      .references(() => groups.id, { onDelete: 'restrict' }),
+      .references(() => groups.id, { onDelete: 'cascade' }),
     academicYearId: uuid('academic_year_id')
       .notNull()
-      .references(() => academicYears.id, { onDelete: 'restrict' }),
+      .references(() => academicYears.id, { onDelete: 'cascade' }),
 
     name: varchar('name', { length: 200 }).notNull(),
     shortDescription: text('short_description'),

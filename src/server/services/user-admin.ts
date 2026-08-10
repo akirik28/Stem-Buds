@@ -1,6 +1,6 @@
 import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { getDb, type Database } from '@/server/db';
-import { advisorProgramScopes, chapterMemberships, groupMemberships, groups, profiles, users } from '@/server/db/schema';
+import { advisorProgramScopes, chapterMemberships, profiles, users } from '@/server/db/schema';
 import { conflict, notFound, validationError } from '@/server/errors';
 import { destroyAllSessionsForUser } from '@/server/auth/session';
 import { checkPasswordPolicy, generateTemporaryPassword, hashPassword } from '@/server/auth/password';
@@ -388,11 +388,12 @@ export async function setAdvisorProgramScopes(input: {
 }
 
 /**
- * Hard-deletes a user account — safe only for a truly unused/test account:
- * never logged in, no chapter or group membership ever recorded, and not
- * assigned as any group's mentor. Anyone with real participation history
- * must be deactivated instead (`deactivateUser`), which keeps their
- * identity attached to their historical records and only revokes access.
+ * Hard-deletes a user account, unconditionally — every foreign key touching
+ * `users.id` is `CASCADE` or `SET NULL` at the database level, so this always
+ * removes the account and its own records (memberships, sessions, profile)
+ * while preserving other people's history (audit/message/etc. authorship is
+ * nulled, never deleted). Self-deletion is still blocked since it would drop
+ * the actor mid-transaction.
  */
 export async function deleteUser(input: {
   targetUserId: string;
@@ -403,28 +404,6 @@ export async function deleteUser(input: {
     if (!target) throw notFound('Kullanıcı bulunamadı.');
     if (target.id === input.actor.id) {
       throw validationError('Kendi hesabınızı silemezsiniz.');
-    }
-    if (target.lastLoginAt !== null) {
-      throw validationError('Daha önce giriş yapmış bir hesap silinemez; bunun yerine pasifleştirin.');
-    }
-
-    const [chapterMembership] = await tx
-      .select({ id: chapterMemberships.id })
-      .from(chapterMemberships)
-      .where(eq(chapterMemberships.userId, input.targetUserId))
-      .limit(1);
-    const [groupMembership] = await tx
-      .select({ id: groupMemberships.id })
-      .from(groupMemberships)
-      .where(eq(groupMemberships.userId, input.targetUserId))
-      .limit(1);
-    const [mentoredGroup] = await tx
-      .select({ id: groups.id })
-      .from(groups)
-      .where(eq(groups.mentorUserId, input.targetUserId))
-      .limit(1);
-    if (chapterMembership || groupMembership || mentoredGroup) {
-      throw validationError('Bu kullanıcının katılım geçmişi var; silmek yerine pasifleştirin.');
     }
 
     await tx.delete(users).where(eq(users.id, input.targetUserId));

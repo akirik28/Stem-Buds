@@ -55,7 +55,7 @@ export const chapters = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     programId: uuid('program_id')
       .notNull()
-      .references(() => programs.id, { onDelete: 'restrict' }),
+      .references(() => programs.id, { onDelete: 'cascade' }),
     /** Short code used throughout the UI, e.g. "UAA". */
     code: varchar('code', { length: 16 }).notNull(),
     name: varchar('name', { length: 160 }).notNull(),
@@ -95,10 +95,10 @@ export const chapterMemberships = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     chapterId: uuid('chapter_id')
       .notNull()
-      .references(() => chapters.id, { onDelete: 'restrict' }),
+      .references(() => chapters.id, { onDelete: 'cascade' }),
     academicYearId: uuid('academic_year_id')
       .notNull()
-      .references(() => academicYears.id, { onDelete: 'restrict' }),
+      .references(() => academicYears.id, { onDelete: 'cascade' }),
     role: userRoleEnum('role').notNull(),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -143,11 +143,11 @@ export const groups = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     programId: uuid('program_id')
       .notNull()
-      .references(() => programs.id, { onDelete: 'restrict' }),
+      .references(() => programs.id, { onDelete: 'cascade' }),
     chapterId: uuid('chapter_id').notNull(),
     academicYearId: uuid('academic_year_id')
       .notNull()
-      .references(() => academicYears.id, { onDelete: 'restrict' }),
+      .references(() => academicYears.id, { onDelete: 'cascade' }),
 
     /** Discipline key, e.g. "bio", "chem", "cs", "math", "eng", "social". */
     disciplineKey: varchar('discipline_key', { length: 32 }).notNull(),
@@ -185,7 +185,7 @@ export const groups = pgTable(
       name: 'groups_chapter_id_program_id_chapters_fk',
       columns: [table.chapterId, table.programId],
       foreignColumns: [chapters.id, chapters.programId],
-    }).onDelete('restrict'),
+    }).onDelete('cascade'),
   ],
 );
 

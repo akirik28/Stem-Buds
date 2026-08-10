@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { getDb } from '@/server/db';
-import { chapterMemberships, chapters, groups, users } from '@/server/db/schema';
+import { chapterMemberships, chapters, users } from '@/server/db/schema';
 import { conflict, notFound, validationError } from '@/server/errors';
 import { AUDIT_ACTIONS, recordAudit } from './audit';
 
@@ -292,12 +292,10 @@ export async function reactivateChapter(input: {
 }
 
 /**
- * Hard-deletes a chapter — safe only when it was never actually used: no
- * groups and no member assigned to it yet. A chapter with any real history
- * is never destructible this way; `archiveChapter` is the correct action
- * for that case. The database's own foreign-key constraints
- * (`groups`/`chapter_memberships` both `RESTRICT` on `chapter_id`) back this
- * check up regardless of what the application layer does or doesn't verify.
+ * Hard-deletes a chapter, unconditionally — every foreign key on
+ * `chapter_id` (groups, memberships, complaints, feedback, meetings,
+ * channels, ...) is `CASCADE` at the database level, so this always removes
+ * the chapter and everything scoped to it.
  */
 export async function deleteChapter(input: {
   id: string;
@@ -306,16 +304,6 @@ export async function deleteChapter(input: {
   await getDb().transaction(async (tx) => {
     const [target] = await tx.select().from(chapters).where(eq(chapters.id, input.id)).limit(1);
     if (!target) throw notFound('Chapter bulunamadı.');
-
-    const [group] = await tx.select({ id: groups.id }).from(groups).where(eq(groups.chapterId, input.id)).limit(1);
-    const [membership] = await tx
-      .select({ id: chapterMemberships.id })
-      .from(chapterMemberships)
-      .where(eq(chapterMemberships.chapterId, input.id))
-      .limit(1);
-    if (group || membership) {
-      throw validationError('Bu chapter’a ait grup veya üyelik kayıtları var; silmek yerine pasifleştirin.');
-    }
 
     await tx.delete(chapters).where(eq(chapters.id, input.id));
 
