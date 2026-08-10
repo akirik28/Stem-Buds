@@ -170,14 +170,12 @@ export function UserRow({
               Yeniden aktifleştir
             </Button>
           )}
-          {!user.lastLoginAt ? (
-            <ConfirmDeleteButton
-              label="Sil"
-              confirmQuestion="Bu hesap kalıcı olarak silinsin mi? Yalnızca hiç kullanılmamış hesaplar silinebilir."
-              disabled={pending}
-              onConfirm={() => run(() => deleteUserAction(user.id))}
-            />
-          ) : null}
+          <ConfirmDeleteButton
+            label="Sil"
+            confirmQuestion="Bu hesap kalıcı olarak silinsin mi? Tüm geçmişi (üyelikler, oturumlar) birlikte silinir. Bu işlem geri alınamaz."
+            disabled={pending}
+            onConfirm={() => run(() => deleteUserAction(user.id))}
+          />
         </div>
       </div>
 

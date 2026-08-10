@@ -47,7 +47,7 @@ export function AcademicYearRow({
               </Button>
               <ConfirmDeleteButton
                 label="Sil"
-                confirmQuestion={`"${year.label}" silinsin mi? Yalnızca hiç kullanılmamış yıllar silinebilir.`}
+                confirmQuestion={`"${year.label}" ve ona ait tüm gruplar, üyelikler kalıcı silinsin mi? Bu işlem geri alınamaz.`}
                 disabled={pending}
                 onConfirm={() =>
                   startTransition(async () => {

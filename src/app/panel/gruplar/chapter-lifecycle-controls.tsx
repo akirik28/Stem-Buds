@@ -14,11 +14,9 @@ import {
 export function ChapterLifecycleControls({
   chapterId,
   isActive,
-  isEmpty,
 }: {
   chapterId: string;
   isActive: boolean;
-  isEmpty: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<ActionState | null>(null);
@@ -61,14 +59,12 @@ export function ChapterLifecycleControls({
             Yeniden Aktifleştir
           </Button>
         )}
-        {isEmpty ? (
-          <ConfirmDeleteButton
-            label="Chapter'ı Sil"
-            confirmQuestion="Bu chapter kalıcı olarak silinsin mi? Bu işlem geri alınamaz."
-            disabled={pending}
-            onConfirm={() => run(() => deleteChapterAction(chapterId))}
-          />
-        ) : null}
+        <ConfirmDeleteButton
+          label="Chapter'ı Sil"
+          confirmQuestion="Bu chapter ve içindeki tüm gruplar, üyelikler kalıcı silinsin mi? Bu işlem geri alınamaz."
+          disabled={pending}
+          onConfirm={() => run(() => deleteChapterAction(chapterId))}
+        />
       </div>
       {result?.error ? <Alert tone="error">{result.error}</Alert> : null}
       {result?.success ? <Alert tone="success">{result.success}</Alert> : null}

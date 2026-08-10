@@ -15,12 +15,10 @@ export function GroupLifecycleControls({
   chapterId,
   groupId,
   isActive,
-  isEmpty,
 }: {
   chapterId: string;
   groupId: string;
   isActive: boolean;
-  isEmpty: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<ActionState | null>(null);
@@ -69,14 +67,12 @@ export function GroupLifecycleControls({
             Yeniden Aktifleştir
           </Button>
         )}
-        {isEmpty ? (
-          <ConfirmDeleteButton
-            label="Grubu Sil"
-            confirmQuestion="Bu grup kalıcı olarak silinsin mi? Bu işlem geri alınamaz."
-            disabled={pending}
-            onConfirm={() => run(() => deleteGroupAction(chapterId, groupId))}
-          />
-        ) : null}
+        <ConfirmDeleteButton
+          label="Grubu Sil"
+          confirmQuestion="Bu grup ve içindeki tüm üyelikler, oturumlar kalıcı silinsin mi? Bu işlem geri alınamaz."
+          disabled={pending}
+          onConfirm={() => run(() => deleteGroupAction(chapterId, groupId))}
+        />
       </div>
       {result?.error ? <Alert tone="error">{result.error}</Alert> : null}
       {result?.success ? <Alert tone="success">{result.success}</Alert> : null}

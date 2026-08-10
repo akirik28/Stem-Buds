@@ -58,11 +58,7 @@ export default async function ChapterGroupsPage({
             </a>
           ) : null}
           {canManage ? (
-            <ChapterLifecycleControls
-              chapterId={chapter.id}
-              isActive={chapter.isActive}
-              isEmpty={groups.length === 0}
-            />
+            <ChapterLifecycleControls chapterId={chapter.id} isActive={chapter.isActive} />
           ) : null}
         </div>
       </div>

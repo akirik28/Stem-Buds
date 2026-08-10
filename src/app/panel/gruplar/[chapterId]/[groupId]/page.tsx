@@ -78,12 +78,7 @@ export default async function GroupDetailPage({
           <h1 className="mt-1 text-2xl font-semibold text-navy-900">{group.name}</h1>
         </div>
         {canManage ? (
-          <GroupLifecycleControls
-            chapterId={chapter.id}
-            groupId={group.id}
-            isActive={group.isActive}
-            isEmpty={members.length === 0 && sessions.length === 0}
-          />
+          <GroupLifecycleControls chapterId={chapter.id} groupId={group.id} isActive={group.isActive} />
         ) : null}
       </div>
 
