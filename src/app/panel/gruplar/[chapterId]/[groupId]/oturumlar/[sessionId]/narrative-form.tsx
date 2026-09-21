@@ -28,9 +28,6 @@ export function NarrativeForm({
   sessionId: string;
   initial: {
     whatWeDid: string;
-    outputs: string;
-    problems: string;
-    nextWeekGoal: string;
     projectHealth: string;
   };
 }) {
@@ -38,24 +35,22 @@ export function NarrativeForm({
   const [state, formAction] = useActionState<ActionState, FormData>(action, {});
 
   return (
-    <form action={formAction} className="mt-4 space-y-4">
+    <form action={formAction} className="mt-3.5 space-y-3">
       {state.error ? <Alert tone="error">{state.error}</Alert> : null}
       {state.success ? <Alert tone="success">{state.success}</Alert> : null}
 
-      <Field label="Bu hafta projede ne yaptınız?" htmlFor="whatWeDid" required>
-        <Textarea id="whatWeDid" name="whatWeDid" required defaultValue={initial.whatWeDid} rows={3} />
-      </Field>
-
-      <Field label="Bu hafta çıkan sonuç/çıktılar" htmlFor="outputs">
-        <Textarea id="outputs" name="outputs" defaultValue={initial.outputs} rows={2} />
-      </Field>
-
-      <Field label="Karşılaşılan problem" htmlFor="problems">
-        <Textarea id="problems" name="problems" defaultValue={initial.problems} rows={2} />
-      </Field>
-
-      <Field label="Gelecek hafta hedefiniz" htmlFor="nextWeekGoal" required>
-        <Textarea id="nextWeekGoal" name="nextWeekGoal" required defaultValue={initial.nextWeekGoal} rows={2} />
+      {/* One box, not five. The five separate prompts asked a mentor to
+          slice one week into "what we did", "outputs", "problems" and "next
+          week" before they could write anything, and most of the boxes came
+          back empty. One prompt that names all four gets the same facts in
+          the order the mentor actually remembers them. */}
+      <Field
+        label="Bu hafta ne oldu?"
+        htmlFor="whatWeDid"
+        hint="Ne yaptınız, ne çıktı, takıldığınız bir şey var mı, gelecek hafta ne yapacaksınız — hepsini buraya yazın."
+        required
+      >
+        <Textarea id="whatWeDid" name="whatWeDid" required defaultValue={initial.whatWeDid} rows={6} />
       </Field>
 
       <Field label="Proje durumu" htmlFor="projectHealth" required>

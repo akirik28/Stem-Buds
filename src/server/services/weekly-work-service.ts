@@ -76,7 +76,6 @@ async function recomputeCompletion(weeklySessionId: string, db: Database): Promi
   const complete = isSessionComplete({
     attendanceFinalized: workLog.attendanceFinalizedAt !== null,
     whatWeDid: workLog.whatWeDid,
-    nextWeekGoal: workLog.nextWeekGoal,
     projectHealth: workLog.projectHealth,
     homeworkDecided: await hasHomeworkDecision(weeklySessionId, db),
     previousHomeworkApplicable: previousAssignment !== undefined,
@@ -116,7 +115,6 @@ export async function getMissingRequirements(
   const missing = missingSessionRequirements({
     attendanceFinalized: workLog.attendanceFinalizedAt !== null,
     whatWeDid: workLog.whatWeDid,
-    nextWeekGoal: workLog.nextWeekGoal,
     projectHealth: workLog.projectHealth,
     homeworkDecided: await hasHomeworkDecision(weeklySessionId, db),
     previousHomeworkApplicable: previousAssignment !== undefined,

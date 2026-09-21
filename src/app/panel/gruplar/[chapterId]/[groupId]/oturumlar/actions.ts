@@ -80,9 +80,11 @@ export async function updateNarrativeAction(
     await updateWorkLogNarrative({
       weeklySessionId: sessionId,
       whatWeDid: String(formData.get('whatWeDid') ?? ''),
-      outputs: String(formData.get('outputs') ?? ''),
-      problems: String(formData.get('problems') ?? ''),
-      nextWeekGoal: String(formData.get('nextWeekGoal') ?? ''),
+      // The single narrative replaced these three prompts; the columns stay
+      // so older records keep rendering.
+      outputs: '',
+      problems: '',
+      nextWeekGoal: '',
       projectHealth,
       actor: { id: context.user.id, name: context.user.fullName },
     });

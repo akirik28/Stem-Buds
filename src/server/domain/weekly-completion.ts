@@ -2,16 +2,14 @@
  * Whether a weekly session's work record is complete — computed from
  * authoritative server data only, never trusted from client input.
  *
- * Mirrors the master spec's exact requirement list: attendance finalized,
- * "Bu hafta projede ne yaptınız?" filled in, next-week goal filled in,
- * project status selected, next homework decided (assignment or explicit
+ * Attendance finalized, the week's narrative written, project status
+ * selected, next homework decided (assignment or explicit
  * "Ödev yok"), previous homework results finalized *when a previous
  * assignment was actually due at this session*, and mentor approval.
  */
 export type SessionCompletionInput = {
   attendanceFinalized: boolean;
   whatWeDid: string | null;
-  nextWeekGoal: string | null;
   projectHealth: string | null;
   homeworkDecided: boolean;
   previousHomeworkApplicable: boolean;
@@ -22,7 +20,6 @@ export type SessionCompletionInput = {
 export type SessionRequirement =
   | 'attendance'
   | 'what_we_did'
-  | 'next_week_goal'
   | 'project_health'
   | 'homework_decision'
   | 'previous_homework_results'
@@ -35,7 +32,6 @@ export function missingSessionRequirements(input: SessionCompletionInput): Sessi
   const missing: SessionRequirement[] = [];
   if (!input.attendanceFinalized) missing.push('attendance');
   if (!NON_EMPTY(input.whatWeDid)) missing.push('what_we_did');
-  if (!NON_EMPTY(input.nextWeekGoal)) missing.push('next_week_goal');
   if (!input.projectHealth) missing.push('project_health');
   if (!input.homeworkDecided) missing.push('homework_decision');
   if (input.previousHomeworkApplicable && !input.previousHomeworkFinalized) {
@@ -52,7 +48,6 @@ export function isSessionComplete(input: SessionCompletionInput): boolean {
 export const sessionRequirementLabels: Record<SessionRequirement, string> = {
   attendance: 'Katılım tamamlanmalı',
   what_we_did: '"Bu hafta projede ne yaptınız?" doldurulmalı',
-  next_week_goal: 'Gelecek hafta hedefi girilmeli',
   project_health: 'Proje durumu seçilmeli',
   homework_decision: 'Bu haftanın ödevi belirlenmeli (veya "Ödev yok" seçilmeli)',
   previous_homework_results: 'Önceki haftanın ödev sonuçları işlenmeli',

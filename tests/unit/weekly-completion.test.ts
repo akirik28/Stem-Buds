@@ -4,7 +4,6 @@ import { isSessionComplete, missingSessionRequirements } from '@/server/domain/w
 const complete = {
   attendanceFinalized: true,
   whatWeDid: 'Veri seti üzerinde çalıştık.',
-  nextWeekGoal: 'Modeli eğitmeye başlayacağız.',
   projectHealth: 'on_track',
   homeworkDecided: true,
   previousHomeworkApplicable: false,
@@ -45,7 +44,6 @@ describe('isSessionComplete', () => {
     const missing = missingSessionRequirements({
       attendanceFinalized: false,
       whatWeDid: null,
-      nextWeekGoal: null,
       projectHealth: null,
       homeworkDecided: false,
       previousHomeworkApplicable: true,
@@ -55,7 +53,6 @@ describe('isSessionComplete', () => {
     expect(missing).toEqual([
       'attendance',
       'what_we_did',
-      'next_week_goal',
       'project_health',
       'homework_decision',
       'previous_homework_results',

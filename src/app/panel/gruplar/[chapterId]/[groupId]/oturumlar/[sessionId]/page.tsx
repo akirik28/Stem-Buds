@@ -170,9 +170,6 @@ export default async function WeeklySessionPage({
                 sessionId={session.id}
                 initial={{
                   whatWeDid: workLog?.whatWeDid ?? '',
-                  outputs: workLog?.outputs ?? '',
-                  problems: workLog?.problems ?? '',
-                  nextWeekGoal: workLog?.nextWeekGoal ?? '',
                   projectHealth: workLog?.projectHealth ?? '',
                 }}
               />

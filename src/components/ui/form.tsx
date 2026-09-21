@@ -20,7 +20,11 @@ export function Textarea({
   className,
   ...props
 }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={cn(controlClasses, 'min-h-24', className)} {...props} />;
+  // `rows` decides the height. A blanket `min-h-24` used to override it, so
+  // a two-row box still rendered ~130px tall and the weekly report — five
+  // short answers — became a page of mostly empty boxes. The floor left here
+  // is two rows, which is what a textarea would be anyway.
+  return <textarea rows={2} className={cn(controlClasses, 'min-h-16', className)} {...props} />;
 }
 
 export function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
@@ -43,7 +47,7 @@ export type FieldProps = {
  */
 export function Field({ label, htmlFor, hint, error, required, children }: FieldProps) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1">
       <Label htmlFor={htmlFor}>
         {label}
         {required ? (
