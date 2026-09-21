@@ -5,7 +5,6 @@ import { requireAuthContext, assertPermission } from '@/server/auth/context';
 import { canAssignRole, canManageAccounts, type UserRole } from '@/server/authz/policy';
 import {
   changeUserRole,
-  createUser,
   deactivateUser,
   deleteUser,
   reactivateUser,
@@ -20,35 +19,6 @@ export type ActionState = {
   /** Shown once, immediately after creation/reset — never persisted client-side beyond this. */
   credential?: { username: string; temporaryPassword: string };
 };
-
-export async function createUserAction(_state: ActionState, formData: FormData): Promise<ActionState> {
-  const context = await requireAuthContext();
-  assertPermission(canManageAccounts(context.scope));
-
-  const role = String(formData.get('role') ?? '') as UserRole;
-  const chapterId = String(formData.get('chapterId') ?? '') || null;
-  const academicYearId = context.academicYearId;
-  const programIds = formData.getAll('programIds').map(String);
-  const parentOfStudentUserIds = formData.getAll('parentOfStudentUserIds').map(String);
-
-  try {
-    const created = await createUser({
-      username: String(formData.get('username') ?? ''),
-      fullName: String(formData.get('fullName') ?? ''),
-      role,
-      notificationEmail: String(formData.get('notificationEmail') ?? '') || null,
-      chapterId,
-      academicYearId,
-      programIds,
-      parentOfStudentUserIds,
-      actor: { id: context.user.id, name: context.user.fullName },
-    });
-    revalidatePath('/panel/kullanicilar');
-    return { credential: { username: created.username, temporaryPassword: created.temporaryPassword } };
-  } catch (error) {
-    return { error: toUserMessage(error) };
-  }
-}
 
 export async function resetPasswordAction(targetUserId: string): Promise<ActionState> {
   const context = await requireAuthContext();

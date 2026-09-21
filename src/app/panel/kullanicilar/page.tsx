@@ -3,12 +3,10 @@ import { redirect } from 'next/navigation';
 import { requireAuthContext } from '@/server/auth/context';
 import { canManageAccounts } from '@/server/authz/policy';
 import { listAdvisorProgramIds, listUsers } from '@/server/services/user-admin';
-import { listChapters } from '@/server/services/chapter-service';
 import { listPrograms } from '@/server/services/program-service';
 import { Card, CardTitle, EmptyState } from '@/components/ui/card';
 import { StatusPill } from '@/components/ui/status';
 import { roleLabels } from '@/lib/i18n/tr';
-import { CreateUserForm } from './create-user-form';
 import { UserRow } from './user-row';
 
 export const metadata: Metadata = {
@@ -20,35 +18,16 @@ export default async function UsersPage() {
   const context = await requireAuthContext();
   if (!canManageAccounts(context.scope)) redirect('/panel');
 
-  const [users, chapters, programs] = await Promise.all([listUsers(), listChapters(), listPrograms()]);
-
-  const chapterOptions = chapters.map((chapter) => {
-    const program = programs.find((p) => p.id === chapter.programId);
-    return {
-      id: chapter.id,
-      label: `${chapter.code} — ${chapter.name}${program ? ` (${program.shortName})` : ''}`,
-    };
-  });
+  const [users, programs] = await Promise.all([listUsers(), listPrograms()]);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-ink">Kullanıcılar</h1>
         <p className="mt-1 text-sm text-ink-3">
-          Hesaplar yalnızca burada, üst yönetim tarafından oluşturulur.
+          Mevcut hesaplar. Yeni hesap açmak için üst yönetime başvurun.
         </p>
       </div>
-
-      <Card>
-        <CardTitle>Yeni kullanıcı oluştur</CardTitle>
-        <CreateUserForm
-          chapterOptions={chapterOptions}
-          studentOptions={users
-            .filter((u) => u.role === 'student' && u.isActive)
-            .map((u) => ({ id: u.id, label: `${u.fullName} · @${u.username}` }))}
-          programOptions={programs.map((program) => ({ id: program.id, label: program.name }))}
-        />
-      </Card>
 
       <Card>
         <CardTitle>Tüm kullanıcılar ({users.length})</CardTitle>
