@@ -13,14 +13,12 @@ import {
 import {
   archiveGroup,
   assignGroupMentor,
-  createGroup,
   addGroupMember,
   deleteGroup,
   reactivateGroup,
   removeGroupMember,
   setTeamLeader,
 } from '@/server/services/group-service';
-import type { DisciplineKey } from '@/lib/i18n/tr';
 import { toUserMessage } from '@/server/errors';
 
 export type ActionState = { error?: string; success?: string };
@@ -39,27 +37,6 @@ export async function createChapterAction(_state: ActionState, formData: FormDat
     });
     revalidatePath('/panel/gruplar');
     return { success: 'Chapter oluşturuldu.' };
-  } catch (error) {
-    return { error: toUserMessage(error) };
-  }
-}
-
-export async function createGroupAction(_state: ActionState, formData: FormData): Promise<ActionState> {
-  const context = await requireAuthContext();
-  const chapterId = String(formData.get('chapterId') ?? '');
-  const chapter = await getChapterById(chapterId);
-  assertPermission(!!chapter && canManageChapter(context.scope, chapter.id));
-  if (!context.academicYearId) return { error: 'Aktif akademik yıl bulunmuyor.' };
-
-  try {
-    await createGroup({
-      chapterId,
-      academicYearId: context.academicYearId,
-      disciplineKey: String(formData.get('disciplineKey') ?? '') as DisciplineKey,
-      actor: { id: context.user.id, name: context.user.fullName },
-    });
-    revalidatePath(`/panel/gruplar/${chapterId}`);
-    return { success: 'Grup oluşturuldu.' };
   } catch (error) {
     return { error: toUserMessage(error) };
   }

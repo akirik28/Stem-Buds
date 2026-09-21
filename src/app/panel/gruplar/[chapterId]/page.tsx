@@ -5,9 +5,8 @@ import { requireAuthContext } from '@/server/auth/context';
 import { canExportChapter, canManageChapter, canViewChapter } from '@/server/authz/policy';
 import { getChapterById } from '@/server/services/chapter-service';
 import { listGroupsByChapter } from '@/server/services/group-service';
-import { Card, CardTitle, EmptyState } from '@/components/ui/card';
+import { Card, EmptyState } from '@/components/ui/card';
 import { messages } from '@/lib/i18n/tr';
-import { CreateGroupForm } from './create-group-form';
 import { ChapterLifecycleControls } from '../chapter-lifecycle-controls';
 
 export const metadata: Metadata = {
@@ -62,13 +61,6 @@ export default async function ChapterGroupsPage({
           ) : null}
         </div>
       </div>
-
-      {canManage ? (
-        <Card>
-          <CardTitle>Yeni grup oluştur</CardTitle>
-          <CreateGroupForm chapterId={chapter.id} />
-        </Card>
-      ) : null}
 
       {groups.length === 0 ? (
         <EmptyState title={messages.empty.noGroups} />
