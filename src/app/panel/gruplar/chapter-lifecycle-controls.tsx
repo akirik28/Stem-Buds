@@ -35,7 +35,7 @@ export function ChapterLifecycleControls({
         {isActive ? (
           confirmingArchive ? (
             <>
-              <span className="text-xs text-navy-500">Bu chapter pasifleştirilsin mi?</span>
+              <span className="text-xs text-ink-3">Bu chapter pasifleştirilsin mi?</span>
               <Button type="button" variant="danger" size="sm" disabled={pending} onClick={() => run(() => archiveChapterAction(chapterId))}>
                 Evet, Pasifleştir
               </Button>

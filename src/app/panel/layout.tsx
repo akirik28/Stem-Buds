@@ -1,42 +1,56 @@
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { getAuthContext } from '@/server/auth/context';
-import { BrandLockup } from '@/components/brand/logo';
 import { roleLabels } from '@/lib/i18n/tr';
-import { LogoutButton } from './logout-button';
-import { PlatformNav } from './platform-nav';
+import { initials, roleTheme } from '@/lib/role-theme';
 import { buildNavigation } from './navigation';
+import { describeScope } from './scope-line';
+import { Sidebar, type SidebarUser } from './sidebar';
+import { MobileHeader, MobileTabBar } from './mobile-nav';
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const context = await getAuthContext();
   if (!context) redirect('/giris');
   if (context.user.mustChangePassword) redirect('/sifre-belirle');
 
-  const navigation = buildNavigation(context.scope);
+  const groups = buildNavigation(context.scope);
+  const theme = roleTheme(context.user.role);
+  const user: SidebarUser = {
+    fullName: context.user.fullName,
+    roleLabel: roleLabels[context.user.role],
+    scope: await describeScope(context.scope),
+    initials: initials(context.user.fullName),
+    tintClass: theme.tint,
+    inkClass: theme.ink,
+  };
 
   return (
-    <div className="flex min-h-dvh flex-col bg-sand-50">
-      <header className="sticky top-0 z-30 border-b border-navy-100 bg-white">
-        <div className="container-page flex h-16 items-center justify-between gap-4">
-          <Link href="/panel" className="flex rounded-lg">
-            <BrandLockup size="sm" />
-          </Link>
+    <div className="relative flex h-dvh flex-col overflow-hidden bg-bg">
+      {/*
+       * Two decorative light layers, both first in paint order so every
+       * surface above them stays legible: `edge` is the still gradient bled
+       * in from the frame, `lamp` the slow drift underneath it.
+       */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 [background-image:var(--edge)]"
+      />
+      <div aria-hidden="true" className="aura-lamp" />
 
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium text-navy-900">{context.user.fullName}</p>
-              <p className="text-xs text-navy-500">{roleLabels[context.user.role]}</p>
+      <div className="relative flex min-h-0 flex-1">
+        <Sidebar groups={groups} user={user} />
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <MobileHeader groups={groups} user={user} />
+
+          <main id="main" className="min-h-0 flex-1 overflow-y-auto">
+            <div className="flex max-w-[1160px] flex-col gap-5 px-4 pb-[26px] pt-[18px] lg:px-[34px] lg:pb-11 lg:pt-[30px]">
+              {children}
             </div>
-            <LogoutButton />
-          </div>
+          </main>
+
+          <MobileTabBar groups={groups} />
         </div>
-
-        <PlatformNav items={navigation} />
-      </header>
-
-      <main id="main" className="container-page flex-1 py-6">
-        {children}
-      </main>
+      </div>
     </div>
   );
 }

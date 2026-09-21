@@ -23,8 +23,8 @@ export function GenerateSessionsButton({ chapterId, groupId }: { chapterId: stri
       >
         {pending ? 'Oluşturuluyor…' : 'Oturumları Oluştur'}
       </Button>
-      {result?.error ? <p className="text-xs text-red-700">{result.error}</p> : null}
-      {result?.success ? <p className="text-xs text-leaf-700">{result.success}</p> : null}
+      {result?.error ? <p className="text-xs text-danger">{result.error}</p> : null}
+      {result?.success ? <p className="text-xs text-ok">{result.success}</p> : null}
     </div>
   );
 }

@@ -116,7 +116,7 @@ export function BrandLockup({
           className={cn(
             'font-semibold tracking-tight',
             wordSizes[size],
-            tone === 'dark' ? 'text-white' : 'text-navy-800',
+            tone === 'dark' ? 'text-ink' : 'text-ink',
           )}
         >
           STEM &amp; BUDS
@@ -126,7 +126,7 @@ export function BrandLockup({
             className={cn(
               'mt-1 font-semibold uppercase tracking-[0.35em]',
               regionSizes[size],
-              tone === 'dark' ? 'text-navy-200' : 'text-navy-500',
+              tone === 'dark' ? 'text-ink-2' : 'text-ink-3',
             )}
           >
             Türkiye
@@ -145,7 +145,7 @@ function BrandMarkOnDark({ heightPx }: { heightPx: number }) {
   const pad = Math.round(heightPx * 0.18);
   return (
     <span
-      className="inline-flex items-center justify-center rounded-lg bg-white shadow-sm"
+      className="inline-flex items-center justify-center rounded-lg bg-surface shadow-sm"
       style={{ padding: pad }}
     >
       <BrandMark heightPx={heightPx} />

@@ -33,13 +33,13 @@ export function Composer({ channelId, canAnnounce, onPosted }: { channelId: stri
   }, [state]);
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-2 border-t border-navy-100 pt-3">
+    <form ref={formRef} action={formAction} className="space-y-2 border-t border-line-soft pt-3">
       {state.error ? <Alert tone="error">{state.error}</Alert> : null}
       <Textarea name="body" required rows={2} maxLength={4000} placeholder="Mesajınızı yazın… (@kullaniciadi ile bahset)" />
       <div className="flex items-center justify-between">
         {canAnnounce ? (
-          <label className="flex items-center gap-2 text-sm text-navy-600">
-            <input type="checkbox" name="isAnnouncement" className="accent-leaf-600" />
+          <label className="flex items-center gap-2 text-sm text-ink-2">
+            <input type="checkbox" name="isAnnouncement" className="accent-ok" />
             Duyuru olarak gönder
           </label>
         ) : (

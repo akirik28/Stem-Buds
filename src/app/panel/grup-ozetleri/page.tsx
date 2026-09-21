@@ -40,7 +40,7 @@ export default async function AdvisorGroupSummariesPage() {
   if (!activeYear || context.scope.advisorProgramIds.length === 0) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-semibold text-navy-900">Grup Özetleri</h1>
+        <h1 className="text-2xl font-semibold text-ink">Grup Özetleri</h1>
         <EmptyState title="Görüntülenecek yetkili grup bulunmuyor." />
       </div>
     );
@@ -79,8 +79,8 @@ export default async function AdvisorGroupSummariesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-navy-900">Grup Özetleri</h1>
-        <p className="mt-1 text-sm text-navy-500">Yetkili olduğunuz gruplar için kısa, gerçeklere dayalı durum özetleri.</p>
+        <h1 className="text-2xl font-semibold text-ink">Grup Özetleri</h1>
+        <p className="mt-1 text-sm text-ink-3">Yetkili olduğunuz gruplar için kısa, gerçeklere dayalı durum özetleri.</p>
       </div>
 
       {sections.every((s) => s.groups.length === 0) ? (
@@ -89,7 +89,7 @@ export default async function AdvisorGroupSummariesPage() {
         sections.map((section) =>
           section.groups.length === 0 ? null : (
             <section key={section.programId} className="space-y-3">
-              <h2 className="text-lg font-semibold text-navy-800">{section.programLabel}</h2>
+              <h2 className="text-lg font-semibold text-ink">{section.programLabel}</h2>
               <div className="grid gap-3 md:grid-cols-2">
                 {section.groups.map(({ group, chapterName }) => (
                   <Card key={group.id}>

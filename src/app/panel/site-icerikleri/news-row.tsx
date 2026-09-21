@@ -66,14 +66,14 @@ export function NewsRow({ post }: { post: NewsData }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <p className="font-medium text-navy-900">{post.title}</p>
+            <p className="font-medium text-ink">{post.title}</p>
             <StatusPill tone={post.isPublished ? 'ok' : 'neutral'}>{post.isPublished ? 'Yayında' : 'Taslak'}</StatusPill>
           </div>
-          <p className="text-xs text-navy-400">
+          <p className="text-xs text-ink-3">
             /haberler/{post.slug}
             {post.publishedAt ? ` · ${formatDateTimeTr(post.publishedAt)}` : ''}
           </p>
-          <p className="mt-1 text-sm text-navy-600">{post.summary}</p>
+          <p className="mt-1 text-sm text-ink-2">{post.summary}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button

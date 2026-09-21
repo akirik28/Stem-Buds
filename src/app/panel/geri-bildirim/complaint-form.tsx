@@ -46,11 +46,11 @@ export function ComplaintForm() {
         <Textarea id="complaint-body" name="body" required rows={4} />
       </Field>
 
-      <label className="flex items-center gap-2 text-sm text-navy-600">
-        <input type="checkbox" name="isAnonymous" className="accent-leaf-600" />
+      <label className="flex items-center gap-2 text-sm text-ink-2">
+        <input type="checkbox" name="isAnonymous" className="accent-ok" />
         Anonim gönder
       </label>
-      <p className="text-xs text-navy-400">
+      <p className="text-xs text-ink-3">
         Şikâyetiniz gizli tutulur; yalnızca Chapter Head veya üst yönetim görüntüleyebilir. &ldquo;Chapter Head ile
         ilgili&rdquo; kategorisi seçildiğinde şikâyet yalnızca üst yönetime iletilir.
       </p>

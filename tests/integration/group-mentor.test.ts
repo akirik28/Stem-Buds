@@ -261,6 +261,9 @@ describe('cross-program / cross-group leakage', () => {
       teamLeaderGroupIds: [],
       advisorProgramIds: [],
       advisorChapterIds: [],
+      parentStudentUserIds: [],
+      parentGroupIds: [],
+      parentChapterIds: [],
     };
 
     // Guessing/typing another group's channel ID does not grant access.
@@ -277,6 +280,9 @@ describe('cross-program / cross-group leakage', () => {
       teamLeaderGroupIds: [],
       advisorProgramIds: [],
       advisorChapterIds: [],
+      parentStudentUserIds: [],
+      parentGroupIds: [],
+      parentChapterIds: [],
     };
     expect(canAccessChannel(studentOfA, { type: 'group', chapterId, groupId: groupA })).toBe(true);
     expect(canAccessChannel(studentOfA, { type: 'group', chapterId, groupId: groupB })).toBe(false);
@@ -296,6 +302,9 @@ describe('cross-program / cross-group leakage', () => {
       teamLeaderGroupIds: [],
       advisorProgramIds: [],
       advisorChapterIds: [],
+      parentStudentUserIds: [],
+      parentGroupIds: [],
+      parentChapterIds: [],
     };
     expect(canAccessChannel(exec, { type: 'group', chapterId, groupId: 'any-group' })).toBe(true);
   });

@@ -46,14 +46,14 @@ export function PreviousHomeworkForm({
     <form action={formAction} className="mt-4 space-y-3">
       {state.error ? <Alert tone="error">{state.error}</Alert> : null}
       {state.success ? <Alert tone="success">{state.success}</Alert> : null}
-      {finalized ? <p className="text-xs text-navy-400">Sonuçlar daha önce kaydedildi.</p> : null}
+      {finalized ? <p className="text-xs text-ink-3">Sonuçlar daha önce kaydedildi.</p> : null}
 
       {students.map((student) => (
-        <div key={student.membershipId} className="flex flex-wrap items-center gap-3 rounded-lg border border-navy-100 p-3">
+        <div key={student.membershipId} className="flex flex-wrap items-center gap-3 rounded-lg border border-line-soft p-3">
           <input type="hidden" name="membershipId" value={student.membershipId} />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-navy-900">{student.fullName}</p>
-            <p className="text-xs text-navy-500">@{student.username}</p>
+            <p className="text-sm font-medium text-ink">{student.fullName}</p>
+            <p className="text-xs text-ink-3">@{student.username}</p>
           </div>
           <Select
             name={`status-${student.membershipId}`}

@@ -20,8 +20,8 @@ export function AcademicYearRow({
     <div className="py-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="font-medium text-navy-900">{year.label}</p>
-          <p className="text-sm text-navy-500">
+          <p className="font-medium text-ink">{year.label}</p>
+          <p className="text-sm text-ink-3">
             {formatShortDateTr(year.startDate)} – {formatShortDateTr(year.endDate)}
           </p>
         </div>

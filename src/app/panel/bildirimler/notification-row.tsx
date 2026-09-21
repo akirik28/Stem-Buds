@@ -14,22 +14,22 @@ export function NotificationRow({ notification }: { notification: Notification }
   const isUnread = notification.readAt === null;
 
   return (
-    <Card className={isUnread ? 'ring-1 ring-inset ring-navy-200' : undefined}>
+    <Card className={isUnread ? 'ring-1 ring-inset ring-line' : undefined}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             {isUnread ? <StatusPill tone="info">Yeni</StatusPill> : null}
-            <p className="font-medium text-navy-900">{notification.title}</p>
+            <p className="font-medium text-ink">{notification.title}</p>
           </div>
-          {notification.body ? <p className="mt-1 text-sm text-navy-600">{notification.body}</p> : null}
-          <p className="mt-1 text-xs text-navy-400">{formatRelativeTr(notification.createdAt)}</p>
+          {notification.body ? <p className="mt-1 text-sm text-ink-2">{notification.body}</p> : null}
+          <p className="mt-1 text-xs text-ink-3">{formatRelativeTr(notification.createdAt)}</p>
         </div>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         {notification.linkUrl ? (
           <Link
             href={notification.linkUrl}
-            className="text-sm text-navy-700 hover:underline"
+            className="text-sm text-ink-2 hover:underline"
             onClick={() => {
               if (isUnread) startTransition(() => void markNotificationReadAction(notification.id));
             }}

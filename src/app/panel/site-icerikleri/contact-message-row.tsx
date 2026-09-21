@@ -29,15 +29,15 @@ export function ContactMessageRow({ item }: { item: ContactMessageData }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <p className="font-medium text-navy-900">{item.fullName}</p>
+            <p className="font-medium text-ink">{item.fullName}</p>
             <StatusPill tone="neutral">{contactReasonLabels[item.reason]}</StatusPill>
             {handled ? <StatusPill tone="ok">İşlendi</StatusPill> : <StatusPill tone="warn">Bekliyor</StatusPill>}
           </div>
-          <p className="text-xs text-navy-400">
+          <p className="text-xs text-ink-3">
             {item.email}
             {item.phone ? ` · ${item.phone}` : ''} · {formatDateTimeTr(item.createdAt)}
           </p>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-navy-600">{item.message}</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-ink-2">{item.message}</p>
         </div>
         {!handled ? (
           <Button

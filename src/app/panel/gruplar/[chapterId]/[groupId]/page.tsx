@@ -72,10 +72,10 @@ export default async function GroupDetailPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link href={`/panel/gruplar/${chapter.id}`} className="text-sm text-navy-500 hover:text-navy-700">
+          <Link href={`/panel/gruplar/${chapter.id}`} className="text-sm text-ink-3 hover:text-ink-2">
             ← {chapter.name}
           </Link>
-          <h1 className="mt-1 text-2xl font-semibold text-navy-900">{group.name}</h1>
+          <h1 className="mt-1 text-2xl font-semibold text-ink">{group.name}</h1>
         </div>
         {canManage ? (
           <GroupLifecycleControls chapterId={chapter.id} groupId={group.id} isActive={group.isActive} />
@@ -93,11 +93,11 @@ export default async function GroupDetailPage({
         </div>
 
         {currentMentor ? (
-          <p className="mt-2 text-sm text-navy-700">
+          <p className="mt-2 text-sm text-ink-2">
             {currentMentor.fullName} (@{currentMentor.username})
           </p>
         ) : (
-          <p className="mt-2 text-sm text-navy-500">Bu gruba henüz mentor atanmadı.</p>
+          <p className="mt-2 text-sm text-ink-3">Bu gruba henüz mentor atanmadı.</p>
         )}
 
         {canManage &&
@@ -105,12 +105,12 @@ export default async function GroupDetailPage({
           <AssignMentorForm chapterId={chapter.id} groupId={group.id} candidates={mentorCandidates} />
         ) : null}
         {mentorCardState === 'draft_no_candidates' && canManage ? (
-          <p className="mt-3 text-xs text-navy-400">
+          <p className="mt-3 text-xs text-ink-3">
             Atanabilecek mentor yok. Önce Kullanıcılar sayfasından bu chapter’a bir mentor atayın.
           </p>
         ) : null}
         {mentorCardState === 'assigned_no_alternatives' && canManage ? (
-          <p className="mt-3 text-xs text-navy-400">Başka atanabilir mentor bulunmuyor.</p>
+          <p className="mt-3 text-xs text-ink-3">Başka atanabilir mentor bulunmuyor.</p>
         ) : null}
       </Card>
 
@@ -118,7 +118,7 @@ export default async function GroupDetailPage({
         <Card>
           <CardTitle>Öğrenci ekle</CardTitle>
           {candidates.length === 0 ? (
-            <p className="mt-3 text-sm text-navy-500">
+            <p className="mt-3 text-sm text-ink-3">
               Bu gruba eklenebilecek başka öğrenci bulunmuyor.
             </p>
           ) : (
@@ -135,18 +135,18 @@ export default async function GroupDetailPage({
           ) : null}
         </div>
         {sessions.length === 0 ? (
-          <p className="mt-3 text-sm text-navy-500">
+          <p className="mt-3 text-sm text-ink-3">
             Henüz oturum oluşturulmadı. {canFinalizeSessions ? '"Oturumları Oluştur" ile başlayın.' : ''}
           </p>
         ) : (
-          <ul className="mt-3 divide-y divide-navy-100">
+          <ul className="mt-3 divide-y divide-line-soft">
             {sessions.map((session) => (
               <li key={session.id}>
                 <Link
                   href={`/panel/gruplar/${chapter.id}/${group.id}/oturumlar/${session.id}`}
-                  className="flex items-center justify-between py-2.5 text-sm hover:text-navy-900"
+                  className="flex items-center justify-between py-2.5 text-sm hover:text-ink"
                 >
-                  <span className="text-navy-700">
+                  <span className="text-ink-2">
                     {session.weekNumber}. Hafta — {formatShortDateTr(session.scheduledStartAt)}
                   </span>
                   <StatusPill tone={session.state === 'scheduled' ? 'info' : 'neutral'}>
@@ -164,7 +164,7 @@ export default async function GroupDetailPage({
         {members.length === 0 ? (
           <EmptyState title="Bu grupta henüz üye yok." />
         ) : (
-          <div className="mt-3 divide-y divide-navy-100">
+          <div className="mt-3 divide-y divide-line-soft">
             {members.map((member) => (
               <MemberRow
                 key={member.id}
@@ -188,10 +188,10 @@ export default async function GroupDetailPage({
         <Card>
           <CardTitle>Geri Bildirim Özeti</CardTitle>
           {feedbackAverages.responseCount === 0 ? (
-            <p className="mt-2 text-sm text-navy-500">Bu grup için henüz anket yanıtı bulunmuyor.</p>
+            <p className="mt-2 text-sm text-ink-3">Bu grup için henüz anket yanıtı bulunmuyor.</p>
           ) : (
             <div className="mt-3">
-              <p className="text-xs text-navy-400">{feedbackAverages.responseCount} yanıtın ortalaması</p>
+              <p className="text-xs text-ink-3">{feedbackAverages.responseCount} yanıtın ortalaması</p>
               <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <FeedbackAverage label="Mentor yönlendirmesi" value={feedbackAverages.avgMentorGuidance} />
                 <FeedbackAverage label="Verimlilik" value={feedbackAverages.avgSessionProductivity} />
@@ -209,8 +209,8 @@ export default async function GroupDetailPage({
 function FeedbackAverage({ label, value }: { label: string; value: number | null }) {
   return (
     <div>
-      <dt className="text-xs text-navy-400">{label}</dt>
-      <dd className="text-lg font-semibold text-navy-900">{value !== null ? value.toFixed(1) : '—'}</dd>
+      <dt className="text-xs text-ink-3">{label}</dt>
+      <dd className="text-lg font-semibold text-ink">{value !== null ? value.toFixed(1) : '—'}</dd>
     </div>
   );
 }

@@ -99,6 +99,20 @@
       "when": 1786384153824,
       "tag": "0013_relax_delete_restrictions_to_cascade",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789961013132,
+      "tag": "0014_meeting_requests_and_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1789961894796,
+      "tag": "0015_parent_role_and_links",
+      "breakpoints": true
     }
   ]
 }

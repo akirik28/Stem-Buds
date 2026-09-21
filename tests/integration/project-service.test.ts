@@ -19,6 +19,7 @@ import {
   updateProjectStatus,
 } from '@/server/services/project-service';
 import { closeTestDb, resetDatabase } from '../helpers/db';
+import { futureAcademicYearWindow } from '../helpers/academic-year';
 
 const actor = { id: null, name: 'test-suite' };
 
@@ -40,9 +41,7 @@ beforeEach(async () => {
   onlineProgramId = program.id;
 
   const year = await createAcademicYear({
-    label: '2026–2027',
-    startDate: '2026-09-01',
-    endDate: '2027-06-30',
+    ...futureAcademicYearWindow(),
     activate: true,
     actor,
   });

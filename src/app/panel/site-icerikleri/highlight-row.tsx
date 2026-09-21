@@ -54,8 +54,8 @@ export function HighlightRow({ highlight }: { highlight: HighlightData }) {
             <Field label="Sıra" htmlFor={`order-${highlight.id}`}>
               <Input id={`order-${highlight.id}`} name="displayOrder" type="number" defaultValue={highlight.displayOrder} className="w-24" />
             </Field>
-            <label className="mt-6 flex items-center gap-2 text-sm text-navy-800">
-              <input type="checkbox" name="isPublic" defaultChecked={highlight.isPublic} className="h-4 w-4 rounded border-navy-300" />
+            <label className="mt-6 flex items-center gap-2 text-sm text-ink">
+              <input type="checkbox" name="isPublic" defaultChecked={highlight.isPublic} className="h-4 w-4 rounded border-line" />
               Sitede göster
             </label>
           </div>
@@ -75,11 +75,11 @@ export function HighlightRow({ highlight }: { highlight: HighlightData }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <p className="font-medium text-navy-900">{highlight.title}</p>
+            <p className="font-medium text-ink">{highlight.title}</p>
             <StatusPill tone={highlight.isPublic ? 'ok' : 'neutral'}>{highlight.isPublic ? 'Yayında' : 'Taslak'}</StatusPill>
           </div>
-          <p className="text-xs text-navy-400">Anahtar: {highlight.key} · Sıra: {highlight.displayOrder}</p>
-          <p className="mt-1 text-sm text-navy-600">{highlight.body}</p>
+          <p className="text-xs text-ink-3">Anahtar: {highlight.key} · Sıra: {highlight.displayOrder}</p>
+          <p className="mt-1 text-sm text-ink-2">{highlight.body}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(true)}>

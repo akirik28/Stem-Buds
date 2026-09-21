@@ -2,7 +2,7 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { and, eq, inArray } from 'drizzle-orm';
 import { ensureDbReady, getDb } from '@/server/db';
-import { advisorProgramScopes, chapterMemberships, chapters, groupMemberships, groups } from '@/server/db/schema';
+import { advisorProgramScopes, chapterMemberships, chapters, groupMemberships, groups, parentStudentLinks } from '@/server/db/schema';
 import { forbidden, unauthenticated } from '@/server/errors';
 import type { AccessScope } from '@/server/authz/policy';
 import { getActiveAcademicYear } from '@/server/services/academic-year';
@@ -99,6 +99,35 @@ export async function loadAccessScope(
     }
   }
 
+  // A parent's whole reach is derived from the children they follow: the
+  // groups those children are active in, and the chapters of those groups.
+  // Nothing is read from the parent's own memberships — they have none.
+  let parentStudentUserIds: string[] = [];
+  let parentGroupIds: string[] = [];
+  let parentChapterIds: string[] = [];
+  if (role === 'parent') {
+    const linkRows = await db
+      .select({ studentUserId: parentStudentLinks.studentUserId })
+      .from(parentStudentLinks)
+      .where(eq(parentStudentLinks.parentUserId, userId));
+    parentStudentUserIds = linkRows.map((r) => r.studentUserId);
+
+    if (parentStudentUserIds.length > 0) {
+      const childGroupRows = await db
+        .select({ groupId: groupMemberships.groupId, chapterId: groups.chapterId })
+        .from(groupMemberships)
+        .innerJoin(groups, eq(groups.id, groupMemberships.groupId))
+        .where(
+          and(
+            inArray(groupMemberships.userId, parentStudentUserIds),
+            eq(groupMemberships.isActive, true),
+          ),
+        );
+      parentGroupIds = [...new Set(childGroupRows.map((r) => r.groupId))];
+      parentChapterIds = [...new Set(childGroupRows.map((r) => r.chapterId))];
+    }
+  }
+
   return {
     userId,
     role,
@@ -111,6 +140,9 @@ export async function loadAccessScope(
       .map((r) => r.groupId),
     advisorProgramIds,
     advisorChapterIds,
+    parentStudentUserIds,
+    parentGroupIds,
+    parentChapterIds,
   };
 }
 

@@ -55,8 +55,8 @@ export function ContinuousFeedbackForm({ groups }: { groups: Array<{ id: string;
         <Textarea id="feedback-message" name="message" required rows={4} />
       </Field>
 
-      <label className="flex items-center gap-2 text-sm text-navy-600">
-        <input type="checkbox" name="isAnonymous" className="accent-leaf-600" />
+      <label className="flex items-center gap-2 text-sm text-ink-2">
+        <input type="checkbox" name="isAnonymous" className="accent-ok" />
         Anonim gönder
       </label>
 

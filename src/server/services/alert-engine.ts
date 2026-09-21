@@ -1,9 +1,11 @@
 import { and, desc, eq, inArray, isNotNull, lt } from 'drizzle-orm';
 import { getDb, type Database } from '@/server/db';
 import {
+  academicYears,
   attendanceRecords,
   chapterMemberships,
   chapters,
+  mentorMeetings,
   groupMemberships,
   groups,
   homeworkAssignments,
@@ -49,7 +51,8 @@ type AlertCategory =
   | 'homework_risk'
   | 'project_stale'
   | 'project_blocked'
-  | 'milestone_overdue';
+  | 'milestone_overdue'
+  | 'chapter_meeting_overdue';
 
 type AlertTab = 'weekly' | 'project';
 
@@ -127,6 +130,17 @@ export async function runAlertEvaluation(options: { force?: boolean } = {}): Pro
       // One Group's evaluation failure must never abort the whole run.
       summary.failures += 1;
     }
+  }
+
+  // Chapter-level conditions are not about any one Group, so they get their
+  // own pass rather than being evaluated N times inside the Group loop.
+  try {
+    const chapterResult = await evaluateChapterMeetingRhythm(db, now);
+    summary.created += chapterResult.created;
+    summary.updated += chapterResult.updated;
+    summary.resolved += chapterResult.resolved;
+  } catch {
+    summary.failures += 1;
   }
 
   // eslint-disable-next-line no-console -- operational visibility, no PII
@@ -703,4 +717,156 @@ async function resolveStaleAlerts(
       ),
     );
   return toResolve.length;
+}
+
+/** A chapter is expected to hold a mentor meeting every two weeks. */
+const CHAPTER_MEETING_RHYTHM_DAYS = 14;
+
+/**
+ * Raises "Chapter toplantısı gecikti" for every active chapter whose last
+ * approved mentor meeting is older than the two-week rhythm.
+ *
+ * Unlike every other rule in this file the subject is a *cadence*, not a
+ * record: there is nothing to look at that was filled in wrong, only
+ * something that did not happen. A chapter whose year has only just started
+ * is measured from the academic year's start date, so a brand-new chapter is
+ * not flagged on day one.
+ */
+async function evaluateChapterMeetingRhythm(
+  db: Database,
+  now: Date,
+): Promise<{ created: number; updated: number; resolved: number }> {
+  const result = { created: 0, updated: 0, resolved: 0 };
+
+  const [activeYear] = await db
+    .select({ id: academicYears.id, startDate: academicYears.startDate })
+    .from(academicYears)
+    .where(eq(academicYears.isActive, true))
+    .limit(1);
+  if (!activeYear) return result;
+
+  const yearStart = new Date(`${activeYear.startDate}T00:00:00Z`);
+  // Nothing is overdue before the rhythm has had time to elapse once.
+  if (now.getTime() < yearStart.getTime()) return result;
+
+  const activeChapters = await db
+    .select({ id: chapters.id, name: chapters.name, programId: chapters.programId })
+    .from(chapters)
+    .where(eq(chapters.isActive, true));
+
+  const overdueMs = CHAPTER_MEETING_RHYTHM_DAYS * 24 * 60 * 60 * 1000;
+
+  for (const chapter of activeChapters) {
+    const [last] = await db
+      .select({ startsAt: mentorMeetings.startsAt })
+      .from(mentorMeetings)
+      .where(
+        and(
+          eq(mentorMeetings.chapterId, chapter.id),
+          eq(mentorMeetings.academicYearId, activeYear.id),
+          eq(mentorMeetings.requestStatus, 'approved'),
+        ),
+      )
+      .orderBy(desc(mentorMeetings.startsAt))
+      .limit(1);
+
+    // With no meeting yet, the clock runs from the start of the year.
+    const since = last?.startsAt ?? yearStart;
+    const elapsedMs = now.getTime() - since.getTime();
+    const fingerprint = `chapter_meeting_overdue:${chapter.id}:${activeYear.id}`;
+
+    if (elapsedMs <= overdueMs) {
+      const resolved = await resolveChapterAlert(db, fingerprint);
+      result.resolved += resolved;
+      continue;
+    }
+
+    const days = Math.floor(elapsedMs / (24 * 60 * 60 * 1000));
+    const outcome = await upsertChapterAlert(db, {
+      fingerprint,
+      chapterId: chapter.id,
+      programId: chapter.programId,
+      academicYearId: activeYear.id,
+      severity: days >= CHAPTER_MEETING_RHYTHM_DAYS * 2 ? 'red' : 'yellow',
+      title: `${chapter.name} — mentor toplantısı gecikti`,
+      detail: last
+        ? `Son mentor toplantısının üzerinden ${days} gün geçti. Beklenen ritim iki hafta.`
+        : `Bu akademik yılda henüz mentor toplantısı yapılmadı (${days} gün).`,
+      metadata: { days, rhythmDays: CHAPTER_MEETING_RHYTHM_DAYS, hasPreviousMeeting: Boolean(last) },
+    });
+    if (outcome === 'created') result.created += 1;
+    else result.updated += 1;
+  }
+
+  return result;
+}
+
+async function upsertChapterAlert(
+  tx: Database,
+  item: {
+    fingerprint: string;
+    chapterId: string;
+    programId: string;
+    academicYearId: string;
+    severity: AlertSeverity;
+    title: string;
+    detail: string;
+    metadata: Record<string, unknown>;
+  },
+): Promise<'created' | 'updated'> {
+  const [existingOpen] = await tx
+    .select({ id: managementAlerts.id })
+    .from(managementAlerts)
+    .where(
+      and(eq(managementAlerts.fingerprint, item.fingerprint), inArray(managementAlerts.status, ['new', 'investigating'])),
+    )
+    .limit(1);
+
+  if (existingOpen) {
+    await tx
+      .update(managementAlerts)
+      .set({
+        severity: item.severity,
+        title: item.title,
+        detail: item.detail,
+        metadata: item.metadata,
+        lastEvaluatedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(managementAlerts.id, existingOpen.id));
+    return 'updated';
+  }
+
+  await tx.insert(managementAlerts).values({
+    fingerprint: item.fingerprint,
+    tab: 'weekly',
+    category: 'chapter_meeting_overdue',
+    severity: item.severity,
+    programId: item.programId,
+    academicYearId: item.academicYearId,
+    chapterId: item.chapterId,
+    // Chapter-scoped: no single Group owns this condition.
+    groupId: null,
+    title: item.title,
+    detail: item.detail,
+    metadata: item.metadata,
+    autoResolvable: true,
+    assignedRoleLabel: 'Chapter Head',
+  });
+  return 'created';
+}
+
+async function resolveChapterAlert(tx: Database, fingerprint: string): Promise<number> {
+  const rows = await tx
+    .update(managementAlerts)
+    .set({ status: 'resolved', resolvedAt: new Date(), updatedAt: new Date() })
+    .where(
+      and(
+        eq(managementAlerts.fingerprint, fingerprint),
+        inArray(managementAlerts.status, ['new', 'investigating']),
+        eq(managementAlerts.autoResolvable, true),
+      ),
+    )
+    .returning({ id: managementAlerts.id });
+  return rows.length;
 }

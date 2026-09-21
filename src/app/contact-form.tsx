@@ -22,14 +22,14 @@ export function ContactForm() {
 
   if (state.success) {
     return (
-      <div className="rounded-2xl bg-white/10 p-6 ring-1 ring-inset ring-white/20">
+      <div className="rounded-2xl bg-surface/10 p-6 ring-1 ring-inset ring-white/20">
         <Alert tone="success">Mesajınız iletildi. En kısa sürede size dönüş yapacağız.</Alert>
       </div>
     );
   }
 
   return (
-    <form action={formAction} className="space-y-4 rounded-2xl bg-white p-6 text-navy-900">
+    <form action={formAction} className="space-y-4 rounded-2xl bg-surface p-6 text-ink">
       {state.error ? <Alert tone="error">{state.error}</Alert> : null}
 
       <Field label="Ad Soyad" htmlFor="contact-fullName" required>

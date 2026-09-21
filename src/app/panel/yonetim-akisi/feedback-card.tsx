@@ -19,8 +19,8 @@ export function FeedbackCard({ feedback, reporterLabel }: { feedback: Continuous
         <StatusPill tone="info">{feedbackCategoryLabels[feedback.category]}</StatusPill>
         {reviewed ? <StatusPill tone="ok">İncelendi</StatusPill> : null}
       </div>
-      <p className="mt-2 whitespace-pre-wrap text-sm text-navy-700">{feedback.message}</p>
-      <p className="mt-1 text-xs text-navy-400">
+      <p className="mt-2 whitespace-pre-wrap text-sm text-ink-2">{feedback.message}</p>
+      <p className="mt-1 text-xs text-ink-3">
         {formatRelativeTr(feedback.createdAt)} · {reporterLabel ?? 'Anonim'}
       </p>
       {!reviewed ? (

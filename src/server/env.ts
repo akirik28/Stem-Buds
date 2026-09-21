@@ -20,6 +20,7 @@ const envSchema = z
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
     TEST_DATABASE_URL: z.string().optional(),
 
+    /** The site's own address. Production: https://stemandbuds.com */
     APP_URL: z.string().url().default('http://localhost:3000'),
     APP_TIMEZONE: z.string().min(1).default('Europe/Istanbul'),
     SESSION_COOKIE_NAME: z.string().min(1).default('sb_session'),
@@ -60,6 +61,26 @@ const envSchema = z
      * the graceful "unavailable" state (see `server/ai/provider.ts`) when unset.
      */
     GROQ_API_KEY: z.string().optional(),
+
+    /**
+     * Which backend the AI surfaces talk to. `groq` is the hosted default;
+     * `ollama` runs an open-weights model (Qwen by default) instead. Either
+     * way the surfaces degrade to the graceful "unavailable" state when the
+     * chosen backend is not actually reachable — switching this can never
+     * break the rest of the product.
+     */
+    AI_PROVIDER: z.enum(['groq', 'ollama']).default('groq'),
+
+    /**
+     * Server-only, like every other credential here. A serverless function
+     * cannot reach `localhost`, so a deployed Ollama must be pointed at a
+     * host the deployment can resolve.
+     */
+    OLLAMA_BASE_URL: z.string().url().default('http://localhost:11434'),
+    OLLAMA_MODEL: z.string().min(1).default('qwen3'),
+    /** Only needed when the instance sits behind an authenticating proxy. */
+    OLLAMA_API_KEY: z.string().optional(),
+    OLLAMA_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
   })
   .superRefine((value, context) => {
     if (value.STORAGE_BACKEND !== 'supabase') return;
@@ -122,6 +143,11 @@ export function getEnv(): ServerEnv {
     INITIAL_EXECUTIVE_PASSWORD: emptyToUndefined(process.env.INITIAL_EXECUTIVE_PASSWORD),
     INITIAL_EXECUTIVE_EMAIL: emptyToUndefined(process.env.INITIAL_EXECUTIVE_EMAIL),
     GROQ_API_KEY: emptyToUndefined(process.env.GROQ_API_KEY),
+    AI_PROVIDER: emptyToUndefined(process.env.AI_PROVIDER),
+    OLLAMA_BASE_URL: emptyToUndefined(process.env.OLLAMA_BASE_URL),
+    OLLAMA_MODEL: emptyToUndefined(process.env.OLLAMA_MODEL),
+    OLLAMA_API_KEY: emptyToUndefined(process.env.OLLAMA_API_KEY),
+    OLLAMA_TIMEOUT_MS: emptyToUndefined(process.env.OLLAMA_TIMEOUT_MS),
   });
 
   if (!parsed.success) {

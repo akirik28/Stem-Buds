@@ -52,8 +52,8 @@ export default async function ProjectsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-navy-900">Projeler</h1>
-        <p className="mt-1 text-sm text-navy-500">Erişebildiğiniz grupların projeleri ve durumları.</p>
+        <h1 className="text-2xl font-semibold text-ink">Projeler</h1>
+        <p className="mt-1 text-sm text-ink-3">Erişebildiğiniz grupların projeleri ve durumları.</p>
       </div>
 
       <nav aria-label="Program filtresi" className="flex flex-wrap gap-2">
@@ -76,16 +76,16 @@ export default async function ProjectsPage({
           .map(({ chapter, groupsWithProjects }) => (
             <Card key={chapter.id}>
               <CardTitle>{chapter.name}</CardTitle>
-              <ul className="mt-3 divide-y divide-navy-100">
+              <ul className="mt-3 divide-y divide-line-soft">
                 {groupsWithProjects.map(({ group, project }) => (
                   <li key={group.id} className="py-2.5">
                     <Link
                       href={`/panel/gruplar/${chapter.id}/${group.id}/proje`}
-                      className="flex items-center justify-between gap-3 text-sm hover:text-navy-900"
+                      className="flex items-center justify-between gap-3 text-sm hover:text-ink"
                     >
-                      <span className="text-navy-700">
+                      <span className="text-ink-2">
                         {project ? project.name : group.name}
-                        <span className="ml-2 text-navy-400">({group.name})</span>
+                        <span className="ml-2 text-ink-3">({group.name})</span>
                       </span>
                       {project ? (
                         <StatusPill tone={projectHealthTones[project.health]} icon={projectHealthIcons[project.health]}>
@@ -111,8 +111,8 @@ function ProgramFilterLink({ label, active, href }: { label: string; active: boo
       href={href}
       className={
         active
-          ? 'inline-flex min-h-9 items-center rounded-full bg-navy-800 px-3.5 text-sm font-medium text-white'
-          : 'inline-flex min-h-9 items-center rounded-full bg-white px-3.5 text-sm font-medium text-navy-600 ring-1 ring-inset ring-navy-200 hover:bg-navy-50'
+          ? 'inline-flex min-h-9 items-center rounded-full bg-surface-3 px-3.5 text-sm font-medium text-ink'
+          : 'inline-flex min-h-9 items-center rounded-full bg-surface px-3.5 text-sm font-medium text-ink-2 ring-1 ring-inset ring-line hover:bg-surface-2'
       }
     >
       {label}

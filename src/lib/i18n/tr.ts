@@ -13,6 +13,7 @@ export const roleLabels = {
   mentor: 'Mentor',
   student: 'Öğrenci',
   advisor_teacher: 'Danışman Öğretmen',
+  parent: 'Veli',
 } as const;
 
 export const roleDescriptions = {
@@ -22,6 +23,7 @@ export const roleDescriptions = {
   mentor: 'Atandığı grupların verileri',
   student: 'Kendi grubu, ödevi ve katılım geçmişi',
   advisor_teacher: 'Atandığı program(lar)ın verilerini salt okunur görüntüler',
+  parent: 'Yalnızca kendi çocuğunun katılım, ödev ve proje bilgileri',
 } as const;
 
 export const attendanceLabels = {
@@ -31,11 +33,17 @@ export const attendanceLabels = {
   excused: 'Mazeretli',
 } as const;
 
+/*
+ * Geometric glyphs, not emoji: they inherit the text colour, keep their
+ * weight at 11px, and read the same on every platform. Shape carries the
+ * meaning on its own — `◇` (excused) is visibly a different kind of mark
+ * from `✕` (absent), not merely a different colour.
+ */
 export const attendanceIcons = {
-  present: '✅',
-  late: '🕗',
-  absent: '❌',
-  excused: '🟡',
+  present: '✓',
+  late: '◔',
+  absent: '✕',
+  excused: '◇',
 } as const;
 
 export const homeworkStatusLabels = {
@@ -46,10 +54,10 @@ export const homeworkStatusLabels = {
 } as const;
 
 export const homeworkStatusIcons = {
-  pending: '⏳',
-  done: '✅',
-  not_done: '❌',
-  excused: '🟡',
+  pending: '·',
+  done: '✓',
+  not_done: '✕',
+  excused: '◇',
 } as const;
 
 export const projectHealthLabels = {
@@ -59,9 +67,9 @@ export const projectHealthLabels = {
 } as const;
 
 export const projectHealthIcons = {
-  on_track: '🟢',
-  attention: '🟡',
-  delayed: '🔴',
+  on_track: '✓',
+  attention: '◆',
+  delayed: '!',
 } as const;
 
 export const milestoneStatusLabels = {
@@ -90,6 +98,7 @@ export const alertCategoryLabels = {
   project_stale: 'Proje güncellenmedi',
   project_blocked: 'Proje engeli',
   milestone_overdue: 'Milestone gecikti',
+  chapter_meeting_overdue: 'Chapter toplantısı gecikti',
 } as const;
 
 export const alertTabLabels = {
@@ -221,7 +230,11 @@ export const auditActionLabels: Record<string, string> = {
   'feedback.reviewed': 'geri bildirimi incelendi olarak işaretledi',
   'feedback_cycle.responded': 'geri bildirim anketini yanıtladı',
   'message.deleted': 'kanal mesajını sildi',
+  'parent_message.sent': 'yönetime mesaj iletti',
   'mentor_meeting.created': 'mentor toplantısı oluşturdu',
+  'mentor_meeting.requested': 'mentor toplantısı talep etti',
+  'mentor_meeting.request_approved': 'toplantı talebini onayladı',
+  'mentor_meeting.request_declined': 'toplantı talebini reddetti',
   'highlight.updated': 'öne çıkan içeriği kaydetti',
   'highlight.deleted': 'öne çıkan içeriği sildi',
   'news.created': 'haber oluşturdu',
@@ -336,4 +349,11 @@ export const messages = {
     unauthenticated: 'Bu işlem için giriş yapmanız gerekiyor.',
     rateLimited: 'Çok fazla deneme yaptınız. Lütfen bir süre sonra tekrar deneyin.',
   },
+} as const;
+
+/** Lifecycle of a meeting a Mentor asked their Chapter Head for. */
+export const meetingRequestStatusLabels = {
+  approved: 'Onaylandı',
+  pending: 'Onay bekliyor',
+  declined: 'Reddedildi',
 } as const;

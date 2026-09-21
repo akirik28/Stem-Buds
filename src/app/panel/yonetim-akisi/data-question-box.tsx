@@ -21,7 +21,7 @@ export function DataQuestionBox({ programId }: { programId: string | null }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-navy-500">Örnekler: {EXAMPLE_QUESTIONS.join(' · ')}</p>
+      <p className="text-xs text-ink-3">Örnekler: {EXAMPLE_QUESTIONS.join(' · ')}</p>
       <Textarea
         value={question}
         onChange={(e) => setQuestion(e.target.value)}

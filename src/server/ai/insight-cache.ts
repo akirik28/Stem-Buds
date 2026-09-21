@@ -6,6 +6,8 @@ import { AUDIT_ACTIONS, recordAudit } from '@/server/services/audit';
 import { consumeRateLimit } from '@/server/services/rate-limit';
 import { AiProviderError, AiRateLimitError, AiUnavailableError, type AiChatMessage, type AiProvider } from './provider';
 import { GroqProvider } from './groq-provider';
+import { OllamaProvider } from './ollama-provider';
+import { getEnv } from '@/server/env';
 import { parseAiManagementInsight, type AiManagementInsight } from './insight-schema';
 import { AI_SYSTEM_PROMPT, buildUserPrompt } from './prompts';
 
@@ -29,10 +31,22 @@ const RPD_WINDOW_MS = 24 * 60 * 60 * 1000;
 const REGEN_LIMIT_PER_ACTOR = 5;
 const REGEN_WINDOW_MS = 5 * 60 * 1000;
 
-let defaultProvider: AiProvider | null = null;
+/**
+ * Keyed by provider name rather than a single slot, so flipping
+ * `AI_PROVIDER` takes effect without a stale instance surviving from the
+ * previous selection (which is what a plain memo would do in tests and in
+ * a long-lived dev server).
+ */
+const providerCache = new Map<string, AiProvider>();
+
 function getDefaultProvider(): AiProvider {
-  if (!defaultProvider) defaultProvider = new GroqProvider();
-  return defaultProvider;
+  const selected = getEnv().AI_PROVIDER;
+  const cached = providerCache.get(selected);
+  if (cached) return cached;
+
+  const provider: AiProvider = selected === 'ollama' ? new OllamaProvider() : new GroqProvider();
+  providerCache.set(selected, provider);
+  return provider;
 }
 
 export type AiInsightType =

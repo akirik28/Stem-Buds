@@ -26,6 +26,12 @@ export type AccessScope = {
   advisorProgramIds: readonly string[];
   /** Every chapter inside `advisorProgramIds`, precomputed for `canViewChapter`/`canViewGroup`. */
   advisorChapterIds: readonly string[];
+  /** Students a parent account follows. Empty for every other role. */
+  parentStudentUserIds: readonly string[];
+  /** Groups those children are in, precomputed. */
+  parentGroupIds: readonly string[];
+  /** Chapters of those groups, precomputed. */
+  parentChapterIds: readonly string[];
 };
 
 export const EXECUTIVE_ROLES: readonly UserRole[] = ['regional_director', 'vice_president'];
@@ -55,6 +61,16 @@ export function isAdvisorTeacher(role: UserRole): boolean {
   return role === 'advisor_teacher';
 }
 
+/**
+ * A Veli (parent). The narrowest role in the product: read-only, scoped to
+ * their own child, and — unlike every other role — not entitled to see the
+ * other people in the group their child belongs to. No `can*` write
+ * permission in this file ever returns true for it.
+ */
+export function isParent(role: UserRole): boolean {
+  return role === 'parent';
+}
+
 /** Only Executive Management may create accounts or change executive roles. */
 export function canManageAccounts(scope: AccessScope): boolean {
   return isExecutive(scope.role);
@@ -82,6 +98,7 @@ export function canViewChapter(scope: AccessScope, chapterId: string): boolean {
   if (isExecutive(scope.role)) return true;
   if (isChapterHead(scope.role)) return scope.headChapterIds.includes(chapterId);
   if (isAdvisorTeacher(scope.role)) return scope.advisorChapterIds.includes(chapterId);
+  if (isParent(scope.role)) return scope.parentChapterIds.includes(chapterId);
   return scope.memberChapterIds.includes(chapterId);
 }
 
@@ -98,6 +115,7 @@ export function canViewGroup(scope: AccessScope, groupId: string, chapterId: str
   if (isMentor(scope.role)) return scope.mentorGroupIds.includes(groupId);
   if (isStudent(scope.role)) return scope.studentGroupIds.includes(groupId);
   if (isAdvisorTeacher(scope.role)) return scope.advisorChapterIds.includes(chapterId);
+  if (isParent(scope.role)) return scope.parentGroupIds.includes(groupId);
   return false;
 }
 
@@ -191,7 +209,21 @@ export function canViewStudentRecords(
   target: { userId: string; groupId: string; chapterId: string },
 ): boolean {
   if (scope.userId === target.userId) return true;
+  // Seeing a parent's own group is not the same as seeing everyone in it:
+  // a parent is entitled to one student's records, their own child's.
+  if (isParent(scope.role)) return scope.parentStudentUserIds.includes(target.userId);
   return canViewGroup(scope, target.groupId, target.chapterId);
+}
+
+/**
+ * Whether the viewer may see the *names* of the other people in a group.
+ *
+ * Everyone who works inside a group may; a parent may not. A parent is shown
+ * the group's shape ("7 öğrenci") and their own child, never the roster —
+ * those are other people's children.
+ */
+export function canSeeGroupMemberNames(scope: AccessScope): boolean {
+  return !isParent(scope.role);
 }
 
 export type ComplaintAccessInput = {
@@ -258,6 +290,9 @@ export function canAccessChannel(scope: AccessScope, channel: ChannelAccessInput
   // organization-wide advisor who can see both Programs' data everywhere
   // else. This does not get an exception when messaging (Phase 7) is built.
   if (isAdvisorTeacher(scope.role)) return false;
+  // A parent's contact with the mentor runs through its own bounded screen,
+  // never the group's own channel — that space belongs to the students.
+  if (isParent(scope.role)) return false;
   if (isExecutive(scope.role)) return true;
 
   if (channel.type === 'group') {

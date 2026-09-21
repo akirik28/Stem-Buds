@@ -109,8 +109,8 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Pro
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-navy-900">Denetim Kaydı</h1>
-        <p className="mt-1 text-sm text-navy-500">
+        <h1 className="text-2xl font-semibold text-ink">Denetim Kaydı</h1>
+        <p className="mt-1 text-sm text-ink-3">
           Hassas işlemlerin geçmişi. Yalnızca görüntülenir — bu sayfadan hiçbir kayıt değiştirilemez veya silinemez.
         </p>
       </div>
@@ -174,7 +174,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Pro
             <Button type="submit" size="sm">
               Filtrele
             </Button>
-            <Link href="/panel/denetim-kaydi" className="text-sm font-medium text-navy-600 hover:text-navy-800">
+            <Link href="/panel/denetim-kaydi" className="text-sm font-medium text-ink-2 hover:text-ink">
               Filtreleri Temizle
             </Link>
           </div>
@@ -184,7 +184,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Pro
       <Card>
         <div className="flex items-center justify-between gap-3">
           <CardTitle>Kayıtlar</CardTitle>
-          <p className="text-sm text-navy-500">{total} kayıt</p>
+          <p className="text-sm text-ink-3">{total} kayıt</p>
         </div>
 
         {entries.length === 0 ? (
@@ -192,7 +192,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Pro
             <EmptyState title={messages.empty.noAuditRecords} />
           </div>
         ) : (
-          <ul className="mt-4 divide-y divide-navy-100">
+          <ul className="mt-4 divide-y divide-line-soft">
             {entries.map((entry) => (
               <AuditLogRow key={entry.id} entry={entry} />
             ))}
@@ -200,23 +200,23 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Pro
         )}
 
         {totalPages > 1 ? (
-          <div className="mt-4 flex items-center justify-between border-t border-navy-100 pt-4">
+          <div className="mt-4 flex items-center justify-between border-t border-line-soft pt-4">
             {page > 1 ? (
-              <Link href={hrefForPage(page - 1)} className="text-sm font-medium text-navy-700 hover:text-navy-900">
+              <Link href={hrefForPage(page - 1)} className="text-sm font-medium text-ink-2 hover:text-ink">
                 ← Önceki
               </Link>
             ) : (
-              <span className="text-sm text-navy-300">← Önceki</span>
+              <span className="text-sm text-ink-3">← Önceki</span>
             )}
-            <span className="text-sm text-navy-500">
+            <span className="text-sm text-ink-3">
               Sayfa {page} / {totalPages}
             </span>
             {page < totalPages ? (
-              <Link href={hrefForPage(page + 1)} className="text-sm font-medium text-navy-700 hover:text-navy-900">
+              <Link href={hrefForPage(page + 1)} className="text-sm font-medium text-ink-2 hover:text-ink">
                 Sonraki →
               </Link>
             ) : (
-              <span className="text-sm text-navy-300">Sonraki →</span>
+              <span className="text-sm text-ink-3">Sonraki →</span>
             )}
           </div>
         ) : null}

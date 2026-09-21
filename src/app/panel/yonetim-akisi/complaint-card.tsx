@@ -39,13 +39,13 @@ export function ComplaintCard({
             <StatusPill tone={STATUS_TONE[complaint.status]}>{complaintCategoryLabels[complaint.category]}</StatusPill>
             <StatusPill tone="neutral">{complaintStatusLabels[complaint.status]}</StatusPill>
           </div>
-          <p className="mt-2 font-medium text-navy-900">{complaint.subject}</p>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-navy-600">{complaint.body}</p>
-          <p className="mt-1 text-xs text-navy-400">
+          <p className="mt-2 font-medium text-ink">{complaint.subject}</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-ink-2">{complaint.body}</p>
+          <p className="mt-1 text-xs text-ink-3">
             {formatRelativeTr(complaint.createdAt)} · {reporterLabel ?? 'Anonim'}
           </p>
           {complaint.resolutionNote ? (
-            <p className="mt-2 rounded-lg bg-leaf-50 px-3 py-2 text-sm text-leaf-800">Çözüm notu: {complaint.resolutionNote}</p>
+            <p className="mt-2 rounded-lg bg-ok-soft px-3 py-2 text-sm text-ok">Çözüm notu: {complaint.resolutionNote}</p>
           ) : null}
         </div>
       </div>
@@ -73,7 +73,7 @@ export function ComplaintCard({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Çözüm notu"
-              className="min-h-9 flex-1 rounded-lg border border-navy-200 px-3 text-sm"
+              className="min-h-9 flex-1 rounded-lg border border-line px-3 text-sm"
             />
             <Button
               type="button"

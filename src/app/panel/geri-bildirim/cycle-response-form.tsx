@@ -35,11 +35,11 @@ export function CycleResponseForm({ cycleId }: { cycleId: string }) {
 
       {RATING_FIELDS.map((field) => (
         <fieldset key={field.name}>
-          <legend className="text-sm font-medium text-navy-700">{field.label}</legend>
+          <legend className="text-sm font-medium text-ink-2">{field.label}</legend>
           <div className="mt-1.5 flex gap-3">
             {[1, 2, 3, 4, 5].map((value) => (
-              <label key={value} className="flex items-center gap-1 text-sm text-navy-600">
-                <input type="radio" name={field.name} value={value} required className="accent-leaf-600" />
+              <label key={value} className="flex items-center gap-1 text-sm text-ink-2">
+                <input type="radio" name={field.name} value={value} required className="accent-ok" />
                 {value}
               </label>
             ))}

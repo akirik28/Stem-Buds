@@ -13,7 +13,7 @@ import {
 import { users } from './auth';
 import { academicYears, chapters } from './org';
 import { programs } from './programs';
-import { meetingAttendanceEnum } from './enums';
+import { meetingAttendanceEnum, meetingRequestStatusEnum } from './enums';
 
 /**
  * A meeting is one of three kinds, distinguished by which of
@@ -54,12 +54,32 @@ export const mentorMeetings = pgTable(
     notes: text('notes'),
     nextMeetingDate: date('next_meeting_date'),
 
+    /**
+     * Every meeting gets a video link at the moment it becomes real — on
+     * creation for a normal meeting, on approval for a requested one — so a
+     * participant never has to chase one down separately.
+     */
+    meetingUrl: varchar('meeting_url', { length: 500 }),
+
+    /**
+     * Request workflow. A Mentor cannot create a meeting (see
+     * `canManageMentorMeetings`) but can ask for one; the Chapter Head
+     * approves or declines it. Rows created the ordinary way are `approved`
+     * from birth, so existing queries need no new filter to keep working.
+     */
+    requestStatus: meetingRequestStatusEnum('request_status').notNull().default('approved'),
+    requestedById: uuid('requested_by_id').references(() => users.id, { onDelete: 'set null' }),
+    requestNote: text('request_note'),
+    decidedById: uuid('decided_by_id').references(() => users.id, { onDelete: 'set null' }),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+
     createdById: uuid('created_by_id').references(() => users.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index('mentor_meetings_chapter_idx').on(table.chapterId, table.startsAt),
+    index('mentor_meetings_request_status_idx').on(table.requestStatus, table.chapterId),
     index('mentor_meetings_program_idx').on(table.programId, table.startsAt),
     uniqueIndex('mentor_meetings_chapter_year_sequence_unique').on(
       table.chapterId,

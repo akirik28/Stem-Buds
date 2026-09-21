@@ -71,11 +71,11 @@ export function UserRow({
     <div className="py-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-medium text-navy-900">{user.fullName}</p>
-          <p className="text-sm text-navy-500">
+          <p className="font-medium text-ink">{user.fullName}</p>
+          <p className="text-sm text-ink-3">
             @{user.username} · {roleLabels[user.role]}
           </p>
-          <p className="text-xs text-navy-400">
+          <p className="text-xs text-ink-3">
             {user.lastLoginAt
               ? `Son giriş: ${formatRelativeTr(user.lastLoginAt)}`
               : 'Henüz giriş yapmadı'}
@@ -129,7 +129,7 @@ export function UserRow({
           {user.isActive ? (
             confirmingDeactivate ? (
               <>
-                <span className="text-xs text-navy-500">Emin misiniz?</span>
+                <span className="text-xs text-ink-3">Emin misiniz?</span>
                 <Button
                   type="button"
                   variant="danger"
@@ -180,10 +180,10 @@ export function UserRow({
       </div>
 
       {user.role === 'advisor_teacher' ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg bg-navy-50 px-3 py-2.5">
-          <span className="text-xs font-medium text-navy-600">Programlar:</span>
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg bg-surface-2 px-3 py-2.5">
+          <span className="text-xs font-medium text-ink-2">Programlar:</span>
           {programOptions.map((program) => (
-            <label key={program.id} className="flex items-center gap-1.5 text-sm text-navy-800">
+            <label key={program.id} className="flex items-center gap-1.5 text-sm text-ink">
               <input
                 type="checkbox"
                 checked={selectedPrograms.includes(program.id)}
@@ -193,7 +193,7 @@ export function UserRow({
                     event.target.checked ? [...prev, program.id] : prev.filter((id) => id !== program.id),
                   );
                 }}
-                className="h-4 w-4 rounded border-navy-300"
+                className="h-4 w-4 rounded border-line"
               />
               {program.label}
             </label>

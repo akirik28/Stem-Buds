@@ -19,8 +19,8 @@ export default async function NotificationsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-navy-900">Bildirimler</h1>
-          <p className="mt-1 text-sm text-navy-500">
+          <h1 className="text-2xl font-semibold text-ink">Bildirimler</h1>
+          <p className="mt-1 text-sm text-ink-3">
             {unreadCount > 0 ? `${unreadCount} okunmamış bildirim.` : 'Tüm bildirimler okundu.'}
           </p>
         </div>

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildNavigation } from '@/app/panel/navigation';
+import { buildNavigation, flattenNavigation } from '@/app/panel/navigation';
 import type { AccessScope } from '@/server/authz/policy';
 
 /**
@@ -21,6 +21,9 @@ function scope(overrides: Partial<AccessScope> & Pick<AccessScope, 'userId' | 'r
     teamLeaderGroupIds: [],
     advisorProgramIds: [],
     advisorChapterIds: [],
+    parentStudentUserIds: [],
+    parentGroupIds: [],
+    parentChapterIds: [],
     ...overrides,
   };
 }
@@ -38,7 +41,7 @@ describe('panel navigation integrity', () => {
   it('every navigation item, across every role, points to a route that actually has a page.tsx on disk', () => {
     const hrefs = new Set<string>();
     for (const roleScope of scopesByRole) {
-      for (const item of buildNavigation(roleScope)) {
+      for (const item of flattenNavigation(buildNavigation(roleScope))) {
         hrefs.add(item.href);
       }
     }
@@ -54,9 +57,31 @@ describe('panel navigation integrity', () => {
     }
   });
 
+  /**
+   * The shell renders a heading per group. A group that survived with no
+   * items would draw a bare label over empty space — the exact "gap-toothed"
+   * result the grouping exists to avoid for the smaller roles.
+   */
+  it('never returns an empty group, for any role', () => {
+    for (const roleScope of scopesByRole) {
+      for (const group of buildNavigation(roleScope)) {
+        expect(group.items.length, `Empty group "${group.title}" for ${roleScope.role}`).toBeGreaterThan(0);
+        expect(group.title.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('gives every role Panelim first, so the shell always has a home', () => {
+    for (const roleScope of scopesByRole) {
+      const first = flattenNavigation(buildNavigation(roleScope))[0];
+      expect(first?.href).toBe('/panel');
+    }
+  });
+
   it('does not prefetch every database-backed panel destination at once', () => {
-    const navPath = path.join(process.cwd(), 'src', 'app', 'panel', 'platform-nav.tsx');
-    const source = readFileSync(navPath, 'utf8');
-    expect(source).toContain('prefetch={false}');
+    for (const file of ['sidebar.tsx', 'mobile-nav.tsx']) {
+      const source = readFileSync(path.join(process.cwd(), 'src', 'app', 'panel', file), 'utf8');
+      expect(source, `${file} should opt out of prefetching`).toContain('prefetch={false}');
+    }
   });
 });

@@ -37,7 +37,7 @@ export function GroupLifecycleControls({
         {isActive ? (
           confirmingArchive ? (
             <>
-              <span className="text-xs text-navy-500">Bu grup pasifleştirilsin mi?</span>
+              <span className="text-xs text-ink-3">Bu grup pasifleştirilsin mi?</span>
               <Button
                 type="button"
                 variant="danger"

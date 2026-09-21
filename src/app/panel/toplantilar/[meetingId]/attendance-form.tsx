@@ -41,12 +41,12 @@ export function AttendanceForm({
       {state.success ? <Alert tone="success">{state.success}</Alert> : null}
 
       {mentors.length === 0 ? (
-        <p className="text-sm text-navy-500">Bu chapter’a atanmış mentor bulunmuyor.</p>
+        <p className="text-sm text-ink-3">Bu chapter’a atanmış mentor bulunmuyor.</p>
       ) : (
         <div className="space-y-2">
           {mentors.map((mentor) => (
             <div key={mentor.userId} className="flex items-center justify-between gap-3">
-              <span className="text-sm text-navy-700">{mentor.fullName}</span>
+              <span className="text-sm text-ink-2">{mentor.fullName}</span>
               <Select name={`status-${mentor.userId}`} defaultValue={existing.get(mentor.userId) ?? 'present'} className="w-40">
                 {Object.entries(meetingAttendanceLabels).map(([value, label]) => (
                   <option key={value} value={value}>

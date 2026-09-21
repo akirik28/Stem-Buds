@@ -63,7 +63,7 @@ export function ChannelThread({
     <div className="flex flex-col gap-3">
       <div className="space-y-1">
         {items.length === 0 ? (
-          <p className="py-6 text-center text-sm text-navy-400">Bu kanalda henüz mesaj yok. İlk mesajı siz gönderin.</p>
+          <p className="py-6 text-center text-sm text-ink-3">Bu kanalda henüz mesaj yok. İlk mesajı siz gönderin.</p>
         ) : (
           items.map((message) => (
             <MessageRow

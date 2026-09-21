@@ -18,12 +18,12 @@ export function MediaRow({ media }: { media: MediaData }) {
   const [state, setState] = useState<ActionState | null>(null);
 
   return (
-    <li className="flex flex-col gap-2 rounded-lg border border-navy-100 p-3">
-      <div className="relative h-32 w-full overflow-hidden rounded-md bg-navy-50">
+    <li className="flex flex-col gap-2 rounded-lg border border-line-soft p-3">
+      <div className="relative h-32 w-full overflow-hidden rounded-md bg-surface-2">
         <Image src={`/api/public-media/${media.id}`} alt={media.altText} fill className="object-cover" unoptimized />
       </div>
-      <p className="truncate text-xs font-medium text-navy-800">{media.fileName}</p>
-      <p className="text-xs text-navy-400">{(media.byteSize / 1024).toFixed(0)} KB</p>
+      <p className="truncate text-xs font-medium text-ink">{media.fileName}</p>
+      <p className="text-xs text-ink-3">{(media.byteSize / 1024).toFixed(0)} KB</p>
       <ConfirmDeleteButton
         label="Sil"
         confirmQuestion={`"${media.fileName}" silinsin mi?`}

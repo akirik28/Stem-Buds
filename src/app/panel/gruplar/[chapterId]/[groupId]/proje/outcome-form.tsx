@@ -48,12 +48,12 @@ export function OutcomeForm({
           defaultValue={initial.externalReferenceUrl}
         />
       </Field>
-      <label className="flex items-center gap-2 text-sm text-navy-800">
+      <label className="flex items-center gap-2 text-sm text-ink">
         <input
           type="checkbox"
           name="finalDelivered"
           defaultChecked={initial.finalDelivered}
-          className="h-4 w-4 rounded border-navy-300"
+          className="h-4 w-4 rounded border-line"
         />
         Final proje teslim edildi ✅
       </label>

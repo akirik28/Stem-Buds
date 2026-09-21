@@ -16,6 +16,12 @@ export const userRoleEnum = pgEnum('user_role', [
   'mentor',
   'student',
   'advisor_teacher',
+  /**
+   * A student's parent. Read-only and narrower than every other role: a
+   * parent sees their own child's records and the bare facts about the
+   * group that child works in — never another student's name or data.
+   */
+  'parent',
 ]);
 
 /** Role a user holds inside a specific discipline group. */
@@ -85,6 +91,12 @@ export const alertCategoryEnum = pgEnum('alert_category', [
   'project_stale',
   'project_blocked',
   'milestone_overdue',
+  /**
+   * A chapter has gone longer than its two-week meeting rhythm without a
+   * Chapter Head ↔ mentor meeting. Unlike the other categories this is about
+   * something that did *not* happen on a cadence, not about a record.
+   */
+  'chapter_meeting_overdue',
 ]);
 
 /** Which bounded Phase 5 AI surface produced a cached insight. */
@@ -173,3 +185,16 @@ export const contactReasonEnum = pgEnum('contact_reason', [
  * an executive configures it — a program's delivery mode is never assumed.
  */
 export const deliveryModeEnum = pgEnum('program_delivery_mode', ['online', 'in_person', 'hybrid']);
+
+/**
+ * Lifecycle of a meeting that a Mentor asked for.
+ *
+ * A meeting created directly by someone who may create one is born
+ * `approved`; only a Mentor's request ever starts as `pending`, because a
+ * Mentor may request a meeting but never schedule one themselves.
+ */
+export const meetingRequestStatusEnum = pgEnum('meeting_request_status', [
+  'approved',
+  'pending',
+  'declined',
+]);

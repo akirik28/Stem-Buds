@@ -21,7 +21,7 @@ export function AddMilestoneForm({ chapterId, groupId }: { chapterId: string; gr
   const [state, formAction] = useActionState<ActionState, FormData>(action, {});
 
   return (
-    <form action={formAction} className="mt-4 flex flex-wrap items-end gap-3 border-t border-navy-100 pt-4">
+    <form action={formAction} className="mt-4 flex flex-wrap items-end gap-3 border-t border-line-soft pt-4">
       {state.error ? <Alert tone="error">{state.error}</Alert> : null}
       <Field label="Milestone başlığı" htmlFor="title" required>
         <Input id="title" name="title" required minLength={2} className="min-w-48" />

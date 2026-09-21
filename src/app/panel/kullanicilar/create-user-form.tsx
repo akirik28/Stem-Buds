@@ -16,6 +16,7 @@ const ASSIGNABLE_ROLES = [
   'mentor',
   'chapter_head',
   'advisor_teacher',
+  'parent',
   'vice_president',
   'regional_director',
 ] as const;
@@ -29,17 +30,22 @@ function SubmitButton() {
   );
 }
 
+export type StudentOption = { id: string; label: string };
+
 export function CreateUserForm({
   chapterOptions,
+  studentOptions,
   programOptions,
 }: {
   chapterOptions: { id: string; label: string }[];
+  studentOptions: StudentOption[];
   programOptions: { id: string; label: string }[];
 }) {
   const [state, formAction] = useActionState<ActionState, FormData>(createUserAction, {});
   const [role, setRole] = useState<string>('student');
   const needsChapter = CHAPTER_SCOPED_ROLES.has(role);
   const needsPrograms = role === 'advisor_teacher';
+  const needsStudents = role === 'parent';
 
   if (state.credential) {
     return <CredentialReveal credential={state.credential} title="Kullanıcı oluşturuldu" />;
@@ -90,25 +96,57 @@ export function CreateUserForm({
 
       {needsPrograms ? (
         <fieldset className="sm:col-span-2">
-          <legend className="block text-sm font-medium text-navy-800">
-            Programlar <span className="ml-1 text-red-700">*</span>
+          <legend className="block text-sm font-medium text-ink">
+            Programlar <span className="ml-1 text-danger">*</span>
           </legend>
           <div className="mt-2 flex flex-wrap gap-4">
             {programOptions.map((program) => (
-              <label key={program.id} className="flex items-center gap-2 text-sm text-navy-800">
+              <label key={program.id} className="flex items-center gap-2 text-sm text-ink">
                 <input
                   type="checkbox"
                   name="programIds"
                   value={program.id}
-                  className="h-4 w-4 rounded border-navy-300"
+                  className="h-4 w-4 rounded border-line"
                 />
                 {program.label}
               </label>
             ))}
           </div>
-          <p className="mt-1 text-xs text-navy-500">
+          <p className="mt-1 text-xs text-ink-3">
             Her iki program da seçilirse organizasyon geneli görünürlük tanımlanır.
           </p>
+        </fieldset>
+      ) : null}
+
+      {needsStudents ? (
+        <fieldset className="rounded-[var(--radius-row)] border border-line p-3">
+          <legend className="px-1 text-sm font-medium text-ink">Bağlı öğrenci</legend>
+          {studentOptions.length === 0 ? (
+            <p className="mt-2 text-xs text-ink-3">
+              Önce öğrenci hesabı oluşturun; veli hesabı bir öğrenciye bağlanmadan hiçbir şey
+              göremez.
+            </p>
+          ) : (
+            <>
+              <div className="mt-2 flex max-h-44 flex-col gap-2 overflow-y-auto">
+                {studentOptions.map((student) => (
+                  <label key={student.id} className="flex items-center gap-2 text-sm text-ink">
+                    <input
+                      type="checkbox"
+                      name="parentOfStudentUserIds"
+                      value={student.id}
+                      className="h-4 w-4 rounded border-line"
+                    />
+                    {student.label}
+                  </label>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-ink-3">
+                Velinin göreceği her şey buradan türetilir: yalnızca seçtiğiniz öğrencinin
+                kayıtları ve o öğrencinin grubunun genel bilgileri.
+              </p>
+            </>
+          )}
         </fieldset>
       ) : null}
 

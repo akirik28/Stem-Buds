@@ -20,7 +20,7 @@ export function MediaUploadForm() {
   const [state, formAction] = useActionState<ActionState, FormData>(uploadMediaAction, {});
 
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-3 border-b border-navy-100 pb-4">
+    <form action={formAction} className="flex flex-wrap items-end gap-3 border-b border-line-soft pb-4">
       {state.error ? (
         <Alert tone="error" className="w-full">
           {state.error}

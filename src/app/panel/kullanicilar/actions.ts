@@ -29,6 +29,7 @@ export async function createUserAction(_state: ActionState, formData: FormData):
   const chapterId = String(formData.get('chapterId') ?? '') || null;
   const academicYearId = context.academicYearId;
   const programIds = formData.getAll('programIds').map(String);
+  const parentOfStudentUserIds = formData.getAll('parentOfStudentUserIds').map(String);
 
   try {
     const created = await createUser({
@@ -39,6 +40,7 @@ export async function createUserAction(_state: ActionState, formData: FormData):
       chapterId,
       academicYearId,
       programIds,
+      parentOfStudentUserIds,
       actor: { id: context.user.id, name: context.user.fullName },
     });
     revalidatePath('/panel/kullanicilar');

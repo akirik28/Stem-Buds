@@ -18,27 +18,27 @@ export function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
 
   return (
     <li className="py-3">
-      <p className="text-xs text-navy-400">{formatDateTimeTr(entry.createdAt)}</p>
-      <p className="mt-0.5 text-sm text-navy-900">{description}</p>
-      {entry.academicYearLabel ? <p className="mt-0.5 text-xs text-navy-400">{entry.academicYearLabel}</p> : null}
+      <p className="text-xs text-ink-3">{formatDateTimeTr(entry.createdAt)}</p>
+      <p className="mt-0.5 text-sm text-ink">{description}</p>
+      {entry.academicYearLabel ? <p className="mt-0.5 text-xs text-ink-3">{entry.academicYearLabel}</p> : null}
       {hasDetail ? (
         <details className="mt-1.5">
-          <summary className="cursor-pointer select-none text-xs font-medium text-navy-500 hover:text-navy-700">
+          <summary className="cursor-pointer select-none text-xs font-medium text-ink-3 hover:text-ink-2">
             Değişiklik Detayı
           </summary>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {entry.beforeData ? (
               <div>
-                <p className="text-xs font-medium text-navy-500">Önce</p>
-                <pre className="mt-1 overflow-x-auto rounded-lg bg-navy-50 p-2 text-xs text-navy-700">
+                <p className="text-xs font-medium text-ink-3">Önce</p>
+                <pre className="mt-1 overflow-x-auto rounded-lg bg-surface-2 p-2 text-xs text-ink-2">
                   {JSON.stringify(entry.beforeData, null, 2)}
                 </pre>
               </div>
             ) : null}
             {entry.afterData ? (
               <div>
-                <p className="text-xs font-medium text-navy-500">Sonra</p>
-                <pre className="mt-1 overflow-x-auto rounded-lg bg-navy-50 p-2 text-xs text-navy-700">
+                <p className="text-xs font-medium text-ink-3">Sonra</p>
+                <pre className="mt-1 overflow-x-auto rounded-lg bg-surface-2 p-2 text-xs text-ink-2">
                   {JSON.stringify(entry.afterData, null, 2)}
                 </pre>
               </div>

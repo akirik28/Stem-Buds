@@ -6,6 +6,8 @@ import {
   createExecutiveMeeting,
   createMentorMeeting,
   createProgramMeeting,
+  decideMeetingRequest,
+  requestMentorMeeting,
   setMentorMeetingAttendance,
   updateMentorMeetingNotes,
 } from '@/server/services/mentor-meeting-service';
@@ -138,6 +140,63 @@ export async function setAttendanceAction(
     await setMentorMeetingAttendance({ scope: context.scope, meetingId, records, actor: { id: context.user.id, name: context.user.fullName } });
     revalidatePath(`/panel/toplantilar/${meetingId}`);
     return { success: 'Katılım kaydedildi.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+/**
+ * A Mentor cannot schedule a meeting but is usually the first to know one is
+ * needed. The proposed slot travels with the request so the Chapter Head's
+ * decision is a single click rather than a re-entry of the same details.
+ */
+export async function requestMentorMeetingAction(
+  chapterId: string,
+  academicYearId: string,
+  _prev: MeetingActionState,
+  formData: FormData,
+): Promise<MeetingActionState> {
+  const context = await requireAuthContext();
+  try {
+    const startsAt = new Date(String(formData.get('startsAt')));
+    const endsAt = new Date(String(formData.get('endsAt')));
+    if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
+      return { error: 'Geçerli bir tarih/saat girin.' };
+    }
+    await requestMentorMeeting({
+      scope: context.scope,
+      chapterId,
+      academicYearId,
+      title: String(formData.get('title') ?? ''),
+      startsAt,
+      endsAt,
+      requestNote: String(formData.get('requestNote') ?? '') || null,
+      actor: { id: context.user.id, name: context.user.fullName },
+    });
+    revalidatePath('/panel/toplantilar');
+    return { success: 'Toplantı talebiniz Chapter Head onayına gönderildi.' };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+export async function decideMeetingRequestAction(
+  meetingId: string,
+  decision: 'approved' | 'declined',
+  _prev: MeetingActionState,
+  formData: FormData,
+): Promise<MeetingActionState> {
+  const context = await requireAuthContext();
+  try {
+    await decideMeetingRequest({
+      scope: context.scope,
+      meetingId,
+      decision,
+      meetingUrl: String(formData.get('meetingUrl') ?? '') || null,
+      actor: { id: context.user.id, name: context.user.fullName },
+    });
+    revalidatePath('/panel/toplantilar');
+    return { success: decision === 'approved' ? 'Talep onaylandı.' : 'Talep reddedildi.' };
   } catch (error) {
     return { error: toUserMessage(error) };
   }

@@ -28,14 +28,14 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-navy-900">Ayarlar</h1>
-        <p className="mt-1 text-sm text-navy-500">Akademik yıl ve program takvimi.</p>
+        <h1 className="text-2xl font-semibold text-ink">Ayarlar</h1>
+        <p className="mt-1 text-sm text-ink-3">Akademik yıl ve program takvimi.</p>
       </div>
 
       <Card>
         <CardTitle>Akademik Yıllar</CardTitle>
         <CreateAcademicYearForm />
-        <div className="mt-4 divide-y divide-navy-100">
+        <div className="mt-4 divide-y divide-line-soft">
           {years.map((year) => (
             <AcademicYearRow
               key={year.id}
@@ -59,11 +59,11 @@ export default async function SettingsPage() {
                 {!settings.configuredAt ? <StatusPill tone="neutral">Yapılandırılmadı</StatusPill> : null}
               </div>
               {!settings.weeklyDayOfWeek || settings.weeklyStartMinute === null ? (
-                <p className="mt-2 text-sm text-navy-500">
+                <p className="mt-2 text-sm text-ink-3">
                   Haftalık çalışma saati henüz belirlenmedi.
                 </p>
               ) : (
-                <p className="mt-2 text-sm text-navy-700">
+                <p className="mt-2 text-sm text-ink-2">
                   {weekdayLabels[settings.weeklyDayOfWeek - 1]} günleri,{' '}
                   {String(Math.floor(settings.weeklyStartMinute / 60)).padStart(2, '0')}:
                   {String(settings.weeklyStartMinute % 60).padStart(2, '0')}

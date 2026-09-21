@@ -29,7 +29,7 @@ export function CreateHighlightForm() {
   }
 
   return (
-    <form action={formAction} className="space-y-3 rounded-lg border border-navy-100 p-3">
+    <form action={formAction} className="space-y-3 rounded-lg border border-line-soft p-3">
       {state.error ? <Alert tone="error">{state.error}</Alert> : null}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Anahtar" htmlFor="new-highlight-key" hint="Benzersiz, örn. impact-2026" required>
@@ -46,8 +46,8 @@ export function CreateHighlightForm() {
         <Field label="Sıra" htmlFor="new-highlight-order">
           <Input id="new-highlight-order" name="displayOrder" type="number" defaultValue={0} className="w-24" />
         </Field>
-        <label className="mt-6 flex items-center gap-2 text-sm text-navy-800">
-          <input type="checkbox" name="isPublic" className="h-4 w-4 rounded border-navy-300" />
+        <label className="mt-6 flex items-center gap-2 text-sm text-ink">
+          <input type="checkbox" name="isPublic" className="h-4 w-4 rounded border-line" />
           Sitede göster
         </label>
       </div>

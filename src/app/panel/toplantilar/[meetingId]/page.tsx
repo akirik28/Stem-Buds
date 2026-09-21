@@ -36,14 +36,14 @@ export default async function MentorMeetingDetailPage({ params }: { params: Prom
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/panel/toplantilar" className="text-sm text-navy-500 hover:text-navy-700">
+        <Link href="/panel/toplantilar" className="text-sm text-ink-3 hover:text-ink-2">
           ← Mentor Toplantıları
         </Link>
-        <h1 className="mt-1 text-xl font-semibold text-navy-900">{meeting.title}</h1>
-        <p className="mt-1 text-sm text-navy-500">
+        <h1 className="mt-1 text-xl font-semibold text-ink">{meeting.title}</h1>
+        <p className="mt-1 text-sm text-ink-3">
           {scopeLabel} · {meeting.sequence} · {formatDateTimeTr(meeting.startsAt)} — {formatDateTimeTr(meeting.endsAt)}
         </p>
-        {meeting.agenda ? <p className="mt-2 text-sm text-navy-600">{meeting.agenda}</p> : null}
+        {meeting.agenda ? <p className="mt-2 text-sm text-ink-2">{meeting.agenda}</p> : null}
       </div>
 
       <Card>
@@ -52,7 +52,7 @@ export default async function MentorMeetingDetailPage({ params }: { params: Prom
           {canManage ? (
             <NotesForm meeting={meeting} />
           ) : (
-            <div className="space-y-3 text-sm text-navy-600">
+            <div className="space-y-3 text-sm text-ink-2">
               <p>{meeting.discussionTopics || 'Henüz not girilmedi.'}</p>
             </div>
           )}
@@ -65,11 +65,11 @@ export default async function MentorMeetingDetailPage({ params }: { params: Prom
           {canManage ? (
             <AttendanceForm meetingId={meeting.id} mentors={participants} existing={attendanceMap} />
           ) : (
-            <ul className="divide-y divide-navy-100 text-sm">
+            <ul className="divide-y divide-line-soft text-sm">
               {participants.map((person) => (
                 <li key={person.userId} className="flex items-center justify-between py-1.5">
-                  <span className="text-navy-700">{person.fullName}</span>
-                  <span className="text-navy-500">
+                  <span className="text-ink-2">{person.fullName}</span>
+                  <span className="text-ink-3">
                     {attendanceMap.has(person.userId) ? meetingAttendanceLabels[attendanceMap.get(person.userId)!] : '—'}
                   </span>
                 </li>

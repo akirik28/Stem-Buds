@@ -35,7 +35,7 @@ export function ConfirmDeleteButton({
 
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
-      <span className="text-xs text-navy-500">{confirmQuestion}</span>
+      <span className="text-xs text-ink-3">{confirmQuestion}</span>
       <Button
         type="button"
         variant="danger"

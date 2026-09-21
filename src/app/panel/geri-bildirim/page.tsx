@@ -34,14 +34,14 @@ export default async function StudentFeedbackPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-navy-900">Geri Bildirim</h1>
-        <p className="mt-1 text-sm text-navy-500">Sesin bize ulaşsın.</p>
+        <h1 className="text-2xl font-semibold text-ink">Geri Bildirim</h1>
+        <p className="mt-1 text-sm text-ink-3">Sesin bize ulaşsın.</p>
       </div>
 
       {pendingCycle ? (
         <Card>
           <CardTitle>Son üç çalışmayı değerlendir</CardTitle>
-          <p className="mt-1 text-sm text-navy-500">Son 3 tamamlanan haftalık çalışma hakkında kısa bir değerlendirme.</p>
+          <p className="mt-1 text-sm text-ink-3">Son 3 tamamlanan haftalık çalışma hakkında kısa bir değerlendirme.</p>
           <div className="mt-4">
             <CycleResponseForm cycleId={pendingCycle.id} />
           </div>
@@ -50,7 +50,7 @@ export default async function StudentFeedbackPage() {
 
       <Card>
         <CardTitle>💬 Geri Bildirim Gönder</CardTitle>
-        <p className="mt-1 text-sm text-navy-500">Mentor, grup, program veya platform hakkında düşüncelerini paylaş.</p>
+        <p className="mt-1 text-sm text-ink-3">Mentor, grup, program veya platform hakkında düşüncelerini paylaş.</p>
         <div className="mt-4">
           <ContinuousFeedbackForm groups={groupOptions} />
         </div>
@@ -58,7 +58,7 @@ export default async function StudentFeedbackPage() {
 
       <Card>
         <CardTitle>⚠️ Şikâyet Bildir</CardTitle>
-        <p className="mt-1 text-sm text-navy-500">Ciddi bir sorun mu var? Gizli olarak bildir.</p>
+        <p className="mt-1 text-sm text-ink-3">Ciddi bir sorun mu var? Gizli olarak bildir.</p>
         <div className="mt-4">
           <ComplaintForm />
         </div>

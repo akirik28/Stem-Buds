@@ -3,83 +3,348 @@
 /*
  * STEM & BUDS design tokens.
  *
- * The palette is built around dark blue, green and light neutrals: serious
- * enough for a science programme, still young. Semantic status colours are
- * always paired with an icon or wording in the UI — colour alone never carries
- * meaning.
+ * Two themes share one variable contract: `:root` is the default dark blue
+ * theme, `.theme-light` overrides every token in place. Nothing below hard-
+ * codes a colour — components reference the semantic name, so switching the
+ * class on <html> re-themes the whole product without a re-render.
+ *
+ * Semantic status colours are always paired with a glyph or wording in the
+ * UI; colour alone never carries meaning. `info` is deliberately the family
+ * used for "mazeretli" (excused) so an excused absence is never rendered in
+ * the same register as a missed one.
+ */
+
+/*
+ * The aura: a slow hue/saturation cycle every surface borrows from, so card
+ * edges and the background lamp drift through green → blue → orange → near
+ * white → cream over 42s. Registered with @property so the custom properties
+ * interpolate numerically instead of snapping between keyframes.
+ */
+@property --auraHue {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 140;
+}
+
+@property --auraSat {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 62%;
+}
+
+@keyframes hue {
+  0% {
+    --auraHue: 140;
+    --auraSat: 62%;
+  }
+  20% {
+    --auraHue: 198;
+    --auraSat: 70%;
+  }
+  40% {
+    --auraHue: 28;
+    --auraSat: 78%;
+  }
+  60% {
+    --auraHue: 44;
+    --auraSat: 10%;
+  }
+  80% {
+    --auraHue: 42;
+    --auraSat: 42%;
+  }
+  100% {
+    --auraHue: 140;
+    --auraSat: 62%;
+  }
+}
+
+/* Background light layer drift. */
+@keyframes lamp {
+  0% {
+    transform: translate3d(-2%, -1%, 0) scale(1.03);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate3d(3%, 2%, 0) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-2%, -1%, 0) scale(1.03);
+    opacity: 0.8;
+  }
+}
+
+/* Loading skeleton pulse. */
+@keyframes sk {
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0.4;
+  }
+}
+
+/* --- Dark theme (default) -------------------------------------------- */
+:root {
+  color-scheme: dark;
+
+  --bg: #26304a;
+  --surface: #2f3a58;
+  --surface-2: #374465;
+  --surface-3: #425076;
+  --line: #4c5c85;
+  --line-soft: #3d4a6d;
+
+  --ink: #f5f8ff;
+  --ink-2: #d6ddf0;
+  --ink-3: #adb9d2;
+
+  /*
+   * Text sitting directly on the page rather than inside a card. On the dark
+   * theme that is the same ink as everywhere else; the separate token exists
+   * so a light page background can override it in one place.
+   */
+  --ink-on-bg: #f5f8ff;
+  --ink-on-bg-2: #d6ddf0;
+
+  --ok: #9aeac4;
+  --ok-soft: #2b5049;
+  --ok-line: #4f8d78;
+
+  --warn: #fbd096;
+  --warn-soft: #54452c;
+  --warn-line: #9a7b45;
+
+  --danger: #ffb3af;
+  --danger-soft: #573a46;
+  --danger-line: #9c5568;
+
+  --info: #a9daff;
+  --info-soft: #2c4570;
+  --info-line: #5077b0;
+
+  --ai: #cdb9ff;
+  --ai-soft: #3b3a6a;
+  --ai-line: #6f66b8;
+
+  --accent: #a9daff;
+  --brand: #cdb9ff;
+
+  --stripe: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.2) 0 5px,
+    rgba(255, 255, 255, 0.04) 5px 10px
+  );
+
+  --edge: radial-gradient(
+      120% 80% at 50% -8%,
+      hsl(var(--auraHue) var(--auraSat) 70% / 0.2),
+      transparent 58%
+    ),
+    radial-gradient(
+      90% 70% at -6% 108%,
+      hsl(calc(var(--auraHue) + 60) var(--auraSat) 68% / 0.16),
+      transparent 62%
+    ),
+    radial-gradient(
+      90% 70% at 108% 106%,
+      hsl(calc(var(--auraHue) + 30) var(--auraSat) 70% / 0.15),
+      transparent 62%
+    );
+
+  --lamp: radial-gradient(
+      680px 480px at 10% 2%,
+      hsl(var(--auraHue) var(--auraSat) 72% / 0.3),
+      transparent 62%
+    ),
+    radial-gradient(
+      620px 440px at 88% -6%,
+      hsl(calc(var(--auraHue) + 70) var(--auraSat) 74% / 0.26),
+      transparent 60%
+    ),
+    radial-gradient(
+      760px 520px at 58% 106%,
+      hsl(calc(var(--auraHue) + 40) var(--auraSat) 70% / 0.22),
+      transparent 62%
+    );
+
+  /* Kept for any surface that still wants a lit edge — cards no longer do. */
+  --shadow: 0 0 0 1px hsl(var(--auraHue) var(--auraSat) 82% / 0.38),
+    0 0 22px -4px hsl(var(--auraHue) var(--auraSat) 74% / 0.46),
+    0 20px 44px -34px #07060d;
+}
+
+/* --- Light theme ------------------------------------------------------ */
+.theme-light {
+  color-scheme: light;
+
+  --bg: #faf7f1;
+  --ink-on-bg: #152540;
+  --ink-on-bg-2: #44546d;
+  --surface: #ffffff;
+  --surface-2: #f4f1e9;
+  --surface-3: #ece7db;
+  --line: #e3ded1;
+  --line-soft: #efebe1;
+
+  --ink: #152540;
+  --ink-2: #44546d;
+  --ink-3: #58687e;
+
+  --ok: #177044;
+  --ok-soft: #e9f6ee;
+  --ok-line: #bfe1cd;
+
+  --warn: #8a5209;
+  --warn-soft: #fbf1e0;
+  --warn-line: #ecd5ad;
+
+  --danger: #a02420;
+  --danger-soft: #fbeeed;
+  --danger-line: #efcbc8;
+
+  --info: #2b4d8f;
+  --info-soft: #ecf1fa;
+  --info-line: #c4d3ee;
+
+  --ai: #5b42a8;
+  --ai-soft: #f1edfb;
+  --ai-line: #d8cef3;
+
+  --accent: #177044;
+  --brand: #8a5209;
+
+  --stripe: repeating-linear-gradient(
+    135deg,
+    rgba(21, 37, 64, 0.1) 0 8px,
+    rgba(21, 37, 64, 0.03) 8px 16px
+  );
+
+  --edge: radial-gradient(120% 80% at 50% -8%, rgba(255, 255, 255, 0.9), transparent 55%),
+    radial-gradient(90% 70% at -6% 108%, hsl(var(--auraHue) 60% 96% / 0.8), transparent 60%),
+    radial-gradient(
+      90% 70% at 108% 106%,
+      hsl(calc(var(--auraHue) + 40) 60% 96% / 0.7),
+      transparent 60%
+    );
+
+  --lamp: radial-gradient(
+      660px 460px at 12% 4%,
+      hsl(var(--auraHue) 55% 55% / 0.12),
+      transparent 62%
+    ),
+    radial-gradient(
+      600px 420px at 84% -4%,
+      hsl(calc(var(--auraHue) + 80) 58% 55% / 0.1),
+      transparent 60%
+    ),
+    radial-gradient(
+      720px 500px at 62% 104%,
+      hsl(calc(var(--auraHue) + 190) 52% 55% / 0.09),
+      transparent 62%
+    );
+
+  --shadow: 0 0 0 1px hsl(var(--auraHue) 45% 45% / 0.1),
+    0 0 26px -10px hsl(var(--auraHue) 60% 45% / 0.22),
+    0 0 44px -18px hsl(calc(var(--auraHue) + 140) 55% 45% / 0.16),
+    0 14px 30px -26px rgba(20, 36, 64, 0.5);
+}
+
+/*
+ * Deliberately NOT `@theme inline`: that resolves `var(--brand)` at build
+ * time and bakes the dark value into every utility, so `.theme-light` could
+ * never re-theme them. Plain `@theme` emits `--color-*: var(--*)` into
+ * `:root` and has utilities reference it, leaving both hops to resolve at
+ * runtime — which is what makes the theme switch work.
  */
 @theme {
-  --color-navy-50: #eef2f9;
-  --color-navy-100: #d6e0f0;
-  --color-navy-200: #adc0e1;
-  --color-navy-300: #7e9bce;
-  --color-navy-400: #4e72b3;
-  --color-navy-500: #2f5296;
-  --color-navy-600: #1f3c76;
-  --color-navy-700: #162d5c;
-  --color-navy-800: #102244;
-  --color-navy-900: #0a1730;
-  --color-navy-950: #060f20;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
 
-  --color-leaf-50: #eefaf1;
-  --color-leaf-100: #d3f3dc;
-  --color-leaf-200: #a8e6bc;
-  --color-leaf-300: #74d296;
-  --color-leaf-400: #45b873;
-  --color-leaf-500: #269a58;
-  --color-leaf-600: #197b46;
-  --color-leaf-700: #156138;
-  --color-leaf-800: #134d2e;
-  --color-leaf-900: #103f27;
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-on-bg: var(--ink-on-bg);
+  --color-ink-on-bg-2: var(--ink-on-bg-2);
 
-  --color-sand-50: #fbfaf7;
-  --color-sand-100: #f4f2ec;
-  --color-sand-200: #e7e3d8;
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-ok-line: var(--ok-line);
 
-  --color-status-ok: var(--color-leaf-600);
-  --color-status-warn: #b45309;
-  --color-status-danger: #b91c1c;
-  --color-status-info: var(--color-navy-500);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-line: var(--warn-line);
 
-  --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    'Noto Sans', sans-serif;
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-line: var(--danger-line);
 
-  --radius-card: 0.875rem;
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-line: var(--info-line);
+
+  --color-ai: var(--ai);
+  --color-ai-soft: var(--ai-soft);
+  --color-ai-line: var(--ai-line);
+
+  --color-accent: var(--accent);
+  --color-brand: var(--brand);
+
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-display: var(--font-literata), ui-serif, Georgia, serif;
+  --font-mono: ui-monospace, Menlo, Consolas, monospace;
+
+  /* Card 18 / row 13 / control 11 / pill — see handoff "Boşluk, köşe, gölge". */
+  --radius-card: 18px;
+  --radius-row: 13px;
+  --radius-control: 11px;
+
+  --shadow-aura: var(--shadow);
 }
 
 @layer base {
-  :root {
-    color-scheme: light;
-  }
-
   html {
     -webkit-text-size-adjust: 100%;
   }
 
   body {
-    background-color: var(--color-sand-50);
-    color: var(--color-navy-900);
+    /* The single animation every surface borrows its hue from. */
+    animation: hue 42s linear infinite;
+    background-color: var(--bg);
+    color: var(--ink-on-bg);
     font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
-  }
-
-  /* A clearly visible focus ring is required for keyboard navigation. */
-  :focus-visible {
-    outline: 2px solid var(--color-navy-500);
-    outline-offset: 2px;
   }
 
   h1,
   h2,
   h3,
   h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
     text-wrap: balance;
   }
 
   /* Turkish copy is long; avoid ugly single-word last lines in paragraphs. */
   p {
     text-wrap: pretty;
+  }
+
+  /* A clearly visible focus ring is required for keyboard navigation. */
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
   }
 }
 
@@ -88,13 +353,82 @@
     width: 100%;
     margin-inline: auto;
     padding-inline: 1rem;
-    max-width: 80rem;
+    /* 1160px content measure from the handoff. */
+    max-width: 72.5rem;
   }
 
   @media (min-width: 768px) {
     .container-page {
       padding-inline: 2rem;
     }
+  }
+
+  /* Card edge light — the aura leaking out of the border. */
+  /*
+   * No glow: the card is defined by a plain border now. The aura is still
+   * available as `--shadow` if a surface ever needs it again, but a lit edge
+   * on every card fought with the solid page colour.
+   */
+  .aura-card {
+    background-color: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    color: var(--ink);
+  }
+
+  /* Full-bleed background light layer. Place inside a `relative` parent. */
+  /*
+   * Sits first in its container and relies on paint order rather than a
+   * negative z-index: `z-index:-1` would push it behind the container's own
+   * background, which is opaque, and the light would never be visible.
+   */
+  .aura-lamp {
+    position: absolute;
+    inset: -14%;
+    background-image: var(--lamp);
+    filter: blur(12px);
+    animation: lamp 26s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /*
+   * A still, dim blue wash for the public hero.
+   *
+   * Deliberately NOT the rotating aura: the marketing page's first screen
+   * should feel lit from one direction and stay that way while someone reads
+   * it, rather than drifting through the hue cycle behind the headline.
+   */
+  /*
+   * A still, dim blue wash for the public hero. Deliberately not the
+   * rotating aura: the first screen should stay lit from one direction while
+   * someone reads it.
+   */
+  .hero-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(
+        980px 680px at 16% -14%,
+        hsl(203 95% 72% / 0.42),
+        transparent 64%
+      ),
+      radial-gradient(760px 580px at 90% 2%, hsl(212 92% 66% / 0.3), transparent 66%),
+      radial-gradient(860px 560px at 44% 114%, hsl(196 92% 68% / 0.2), transparent 64%);
+  }
+
+
+  .skeleton {
+    animation: sk 1.4s ease-in-out infinite;
+    background-color: var(--surface-2);
+  }
+
+  /* Section eyebrow: 10px uppercase with wide tracking. */
+  .eyebrow {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
   }
 
   /* Visible only to screen readers. */
@@ -115,8 +449,7 @@
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
+    animation: none !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }

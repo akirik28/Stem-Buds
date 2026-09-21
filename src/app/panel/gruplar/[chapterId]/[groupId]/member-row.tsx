@@ -39,8 +39,8 @@ export function MemberRow({
     <div className="py-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-medium text-navy-900">{member.fullName}</p>
-          <p className="text-sm text-navy-500">
+          <p className="font-medium text-ink">{member.fullName}</p>
+          <p className="text-sm text-ink-3">
             @{member.username} · {member.role === 'mentor' ? 'Mentor' : 'Öğrenci'}
           </p>
         </div>

@@ -35,19 +35,19 @@ export function MessageRow({
   const canDelete = canModerate || isOwn;
 
   if (message.deletedAt) {
-    return <p className="px-3 py-1.5 text-xs italic text-navy-300">Bu mesaj silindi.</p>;
+    return <p className="px-3 py-1.5 text-xs italic text-ink-3">Bu mesaj silindi.</p>;
   }
 
   return (
-    <div className={`rounded-lg px-3 py-2 ${message.isAnnouncement ? 'bg-amber-50' : message.isPinned ? 'bg-navy-50' : ''}`}>
-      <div className="flex flex-wrap items-center gap-2 text-xs text-navy-400">
-        <span className="font-medium text-navy-700">{message.authorName ?? 'Sistem'}</span>
+    <div className={`rounded-lg px-3 py-2 ${message.isAnnouncement ? 'bg-amber-50' : message.isPinned ? 'bg-surface-2' : ''}`}>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
+        <span className="font-medium text-ink-2">{message.authorName ?? 'Sistem'}</span>
         {message.isOversightAuthor ? <StatusPill tone="neutral">Gözlemci</StatusPill> : null}
         {message.isAnnouncement ? <StatusPill tone="warn">📢 Duyuru</StatusPill> : null}
         {message.isPinned ? <StatusPill tone="info">📌 Sabit</StatusPill> : null}
         <span>{formatRelativeTr(message.createdAt)}</span>
       </div>
-      <p className="mt-1 whitespace-pre-wrap text-sm text-navy-800">{message.body}</p>
+      <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{message.body}</p>
       {error ? <Alert tone="error" className="mt-2">{error}</Alert> : null}
       {canModerate || canDelete ? (
         <div className="mt-2 flex gap-2">

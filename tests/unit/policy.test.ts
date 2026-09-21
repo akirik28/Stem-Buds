@@ -36,6 +36,9 @@ function scope(overrides: Partial<AccessScope> & Pick<AccessScope, 'userId' | 'r
     teamLeaderGroupIds: [],
     advisorProgramIds: [],
     advisorChapterIds: [],
+    parentStudentUserIds: [],
+    parentGroupIds: [],
+    parentChapterIds: [],
     ...overrides,
   };
 }
@@ -77,6 +80,9 @@ const advisorTeacher = scope({
   role: 'advisor_teacher',
   advisorProgramIds: ['program-1'],
   advisorChapterIds: [CHAPTER_A],
+  parentStudentUserIds: [],
+  parentGroupIds: [],
+  parentChapterIds: [],
 });
 
 describe('chapter scope', () => {

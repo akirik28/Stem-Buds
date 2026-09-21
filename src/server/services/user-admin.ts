@@ -1,6 +1,6 @@
 import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { getDb, type Database } from '@/server/db';
-import { advisorProgramScopes, chapterMemberships, profiles, users } from '@/server/db/schema';
+import { advisorProgramScopes, chapterMemberships, parentStudentLinks, profiles, users } from '@/server/db/schema';
 import { conflict, notFound, validationError } from '@/server/errors';
 import { destroyAllSessionsForUser } from '@/server/auth/session';
 import { checkPasswordPolicy, generateTemporaryPassword, hashPassword } from '@/server/auth/password';
@@ -26,6 +26,12 @@ export type CreateUserInput = {
   academicYearId?: string | null;
   /** Only meaningful for `advisor_teacher` — which Program(s) they may observe. */
   programIds?: string[];
+  /**
+   * Only meaningful for `parent` — the student this account follows. A parent
+   * with no link sees nothing at all, so this is effectively required for the
+   * role to be usable.
+   */
+  parentOfStudentUserIds?: string[];
   actor: { id: string | null; name: string };
   /** Injected only by tests; production always uses the env-selected e-mail provider. */
   emailProvider?: EmailProvider;
@@ -114,6 +120,18 @@ export async function createUser(input: CreateUserInput): Promise<CreatedUser> {
       await tx
         .insert(advisorProgramScopes)
         .values(input.programIds.map((programId) => ({ userId: created.id, programId })));
+    }
+
+    if (input.role === 'parent' && input.parentOfStudentUserIds?.length) {
+      await tx
+        .insert(parentStudentLinks)
+        .values(
+          input.parentOfStudentUserIds.map((studentUserId) => ({
+            parentUserId: created.id,
+            studentUserId,
+          })),
+        )
+        .onConflictDoNothing();
     }
 
     await recordAudit(
@@ -421,4 +439,69 @@ export async function deleteUser(input: {
       tx,
     );
   });
+}
+
+/** Students a parent account currently follows. */
+export async function listParentStudentIds(userId: string): Promise<string[]> {
+  const rows = await getDb()
+    .select({ studentUserId: parentStudentLinks.studentUserId })
+    .from(parentStudentLinks)
+    .where(eq(parentStudentLinks.parentUserId, userId));
+  return rows.map((r) => r.studentUserId);
+}
+
+/**
+ * Replaces the set of students a parent follows.
+ *
+ * Whole-set replacement rather than add/remove calls: a parent's scope is
+ * derived entirely from these rows, so the safe operation is the one where
+ * the caller states the complete intended result.
+ */
+export async function setParentStudentLinks(input: {
+  parentUserId: string;
+  studentUserIds: string[];
+  actor: { id: string | null; name: string };
+}): Promise<void> {
+  const db = getDb();
+  const [parent] = await db.select().from(users).where(eq(users.id, input.parentUserId)).limit(1);
+  if (!parent) throw notFound('Kullanıcı bulunamadı.');
+  if (parent.role !== 'parent') throw validationError('Bu kullanıcı bir veli hesabı değil.');
+
+  const unique = [...new Set(input.studentUserIds)];
+  if (unique.length > 0) {
+    const students = await db
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(inArray(users.id, unique));
+    if (students.length !== unique.length || students.some((s) => s.role !== 'student')) {
+      throw validationError('Yalnızca öğrenci hesapları bir veliye bağlanabilir.');
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.delete(parentStudentLinks).where(eq(parentStudentLinks.parentUserId, input.parentUserId));
+    if (unique.length > 0) {
+      await tx
+        .insert(parentStudentLinks)
+        .values(unique.map((studentUserId) => ({ parentUserId: input.parentUserId, studentUserId })));
+    }
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.userUpdated,
+        targetType: 'user',
+        targetId: input.parentUserId,
+        targetLabel: parent.username,
+        after: { parentStudentCount: unique.length },
+      },
+      tx,
+    );
+  });
+
+  // The scope is computed per request from these rows, but an open session
+  // would keep whatever it already loaded for the rest of the request cycle;
+  // dropping sessions makes the change take effect immediately.
+  await destroyAllSessionsForUser(input.parentUserId);
 }

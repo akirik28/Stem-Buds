@@ -16,6 +16,7 @@ import {
 import { PROGRAM_KEYS } from '@/server/domain/program';
 import { isAppError } from '@/server/errors';
 import { closeTestDb, resetDatabase } from '../helpers/db';
+import { futureAcademicYearWindow } from '../helpers/academic-year';
 
 /**
  * "Creator can delete what they create" — the delete-specific authorization
@@ -49,9 +50,7 @@ beforeEach(async () => {
   onlineProgramId = program.id;
 
   const year = await createAcademicYear({
-    label: '2026–2027',
-    startDate: '2026-09-01',
-    endDate: '2027-06-30',
+    ...futureAcademicYearWindow(),
     activate: true,
     actor,
   });

@@ -23,14 +23,14 @@ export function ApproveButton({
   if (alreadyApproved) {
     return (
       <Card>
-        <p className="text-sm font-medium text-leaf-700">✅ Mentor tarafından onaylandı.</p>
+        <p className="text-sm font-medium text-ok">✅ Mentor tarafından onaylandı.</p>
       </Card>
     );
   }
 
   return (
     <Card>
-      <p className="mb-3 text-sm text-navy-600">
+      <p className="mb-3 text-sm text-ink-2">
         Tüm gereklilikler tamamlandığında oturumu onaylayarak haftayı kapatabilirsiniz.
       </p>
       {result?.error ? <Alert tone="error" className="mb-3">{result.error}</Alert> : null}

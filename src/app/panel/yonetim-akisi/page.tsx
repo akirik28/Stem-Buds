@@ -98,8 +98,8 @@ export default async function ManagementFeedPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-navy-900">Yönetim Akışı</h1>
-          <p className="mt-1 text-sm text-navy-500">
+          <h1 className="text-2xl font-semibold text-ink">Yönetim Akışı</h1>
+          <p className="mt-1 text-sm text-ink-3">
             {kpis.openAlertCount > 0
               ? `Şu anda ${kpis.openAlertCount} konu dikkat gerektiriyor.`
               : 'Şu anda dikkat gerektiren bir konu bulunmuyor.'}
@@ -108,7 +108,7 @@ export default async function ManagementFeedPage({
         {isExecutive(context.scope.role) ? (
           <a
             href="/api/export/organization"
-            className="inline-flex min-h-9 items-center rounded-lg bg-white px-3.5 text-sm font-medium text-navy-700 ring-1 ring-inset ring-navy-200 hover:bg-navy-50"
+            className="inline-flex min-h-9 items-center rounded-lg bg-surface px-3.5 text-sm font-medium text-ink-2 ring-1 ring-inset ring-line hover:bg-surface-2"
           >
             Excel’e Aktar (Tüm Organizasyon)
           </a>
@@ -173,15 +173,15 @@ export default async function ManagementFeedPage({
         </Card>
       ) : null}
 
-      <nav aria-label="Sekmeler" className="flex flex-wrap gap-2 border-b border-navy-100">
+      <nav aria-label="Sekmeler" className="flex flex-wrap gap-2 border-b border-line-soft">
         {(['weekly', 'project', 'feedback'] as const).map((t) => (
           <Link
             key={t}
             href={`/panel/yonetim-akisi?tab=${t}${programFilter ? `&program=${programFilter}` : ''}`}
             className={
               tab === t
-                ? 'border-b-2 border-navy-800 px-3 py-2 text-sm font-medium text-navy-900'
-                : 'px-3 py-2 text-sm text-navy-500 hover:text-navy-700'
+                ? 'border-b-2 border-line px-3 py-2 text-sm font-medium text-ink'
+                : 'px-3 py-2 text-sm text-ink-3 hover:text-ink-2'
             }
           >
             {alertTabLabels[t]}
@@ -192,7 +192,7 @@ export default async function ManagementFeedPage({
       {tab === 'feedback' ? (
         <div className="space-y-6">
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-navy-500">Şikâyetler</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-3">Şikâyetler</h2>
             {complaints.length === 0 ? (
               <EmptyState title={messages.empty.noComplaints} />
             ) : (
@@ -208,7 +208,7 @@ export default async function ManagementFeedPage({
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-navy-500">Geri Bildirimler</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-3">Geri Bildirimler</h2>
             {feedbackItems.length === 0 ? (
               <EmptyState title={messages.empty.noFeedback} />
             ) : (
@@ -238,8 +238,8 @@ export default async function ManagementFeedPage({
 function Kpi({ label, value }: { label: string; value: string }) {
   return (
     <Card className="text-center">
-      <p className="text-2xl font-semibold text-navy-900">{value}</p>
-      <p className="mt-1 text-xs text-navy-500">{label}</p>
+      <p className="text-2xl font-semibold text-ink">{value}</p>
+      <p className="mt-1 text-xs text-ink-3">{label}</p>
     </Card>
   );
 }
@@ -250,8 +250,8 @@ function ProgramFilterLink({ label, active, href }: { label: string; active: boo
       href={href}
       className={
         active
-          ? 'inline-flex min-h-9 items-center rounded-full bg-navy-800 px-3.5 text-sm font-medium text-white'
-          : 'inline-flex min-h-9 items-center rounded-full bg-white px-3.5 text-sm font-medium text-navy-600 ring-1 ring-inset ring-navy-200 hover:bg-navy-50'
+          ? 'inline-flex min-h-9 items-center rounded-full bg-surface-3 px-3.5 text-sm font-medium text-ink'
+          : 'inline-flex min-h-9 items-center rounded-full bg-surface px-3.5 text-sm font-medium text-ink-2 ring-1 ring-inset ring-line hover:bg-surface-2'
       }
     >
       {label}

@@ -3,6 +3,7 @@ export * from './auth';
 export * from './programs';
 export * from './org';
 export * from './advisors';
+export * from './parents';
 export * from './projects';
 export * from './weekly';
 export * from './feedback';

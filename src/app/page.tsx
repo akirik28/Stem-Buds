@@ -1,5 +1,7 @@
 import Link from 'next/link';
-import { BrandLockup } from '@/components/brand/logo';
+import { SiteHeader } from './site-header';
+import { SiteFooter } from './site-footer';
+import { HeroSlideshow } from './hero-slideshow';
 import { listPrograms } from '@/server/services/program-service';
 import { listPublicHighlights, listPublicLeadershipProfiles, listPublishedNewsPosts } from '@/server/services/public-site-service';
 import { PROGRAM_KEYS } from '@/server/domain/program';
@@ -53,79 +55,70 @@ export default async function HomePage() {
   const bilsemProgram = programs.find((p) => p.key === PROGRAM_KEYS.bilsem);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-sand-50 text-navy-900">
-      <header className="bg-navy-900 text-white">
-        <div className="container-page flex items-center justify-between py-5">
-          <Link href="/" className="inline-flex rounded-lg">
-            <BrandLockup tone="dark" />
-          </Link>
-          <nav className="hidden items-center gap-6 text-sm font-medium text-navy-100 sm:flex">
-            <a href="#programlar" className="hover:text-white">
-              Programlar
-            </a>
-            <a href="#surec" className="hover:text-white">
-              Süreç
-            </a>
-            <Link href="/haberler" className="hover:text-white">
-              Haberler
-            </Link>
-            <a href="#iletisim" className="hover:text-white">
-              İletişim
-            </a>
-          </nav>
-          <Link
-            href="/giris"
-            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-leaf-500 px-4 text-sm font-medium text-white transition-colors hover:bg-leaf-600"
-          >
-            Platforma Giriş
-          </Link>
-        </div>
-      </header>
+    <div className="flex min-h-dvh flex-col bg-bg text-ink-on-bg">
+      <SiteHeader />
 
       {/* Hero */}
-      <section className="bg-navy-900 text-white">
-        <div className="container-page flex flex-col gap-10 py-16 sm:py-24">
-          <div className="max-w-2xl">
-            <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-              Fikri projeye, merakı üretime dönüştürüyoruz.
+      <section className="relative isolate overflow-hidden">
+        <div aria-hidden="true" className="hero-glow" />
+
+        <div className="container-page relative grid items-center gap-12 py-16 sm:py-24 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]">
+          <div>
+            <span className="inline-flex items-center rounded-full border border-ink-on-bg/20 bg-bg/40 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-ink-on-bg-2 backdrop-blur">
+              Öğrenci liderliğinde · ücretsiz
+            </span>
+
+            <h1 className="mt-6 font-display text-[40px]/[1.08] font-semibold tracking-[-0.03em] text-ink-on-bg sm:text-[56px]">
+              Fikri projeye,
+              <br />
+              merakı üretime
+              <br />
+              dönüştürüyoruz.
             </h1>
-            <p className="mt-5 text-lg leading-relaxed text-navy-100">
-              STEM &amp; BUDS, ortaokul öğrencilerini lise mentorlarıyla bir araya getirerek meraklarını gerçek
-              araştırma ve proje çalışmalarına dönüştüren, öğrenci liderliğinde bir programdır.
+
+            <p className="mt-6 max-w-xl text-[16px]/[1.75] text-ink-on-bg-2">
+              STEM &amp; BUDS, ortaokul öğrencilerini lise mentorlarıyla bir araya getirerek meraklarını
+              gerçek araştırma ve proje çalışmalarına dönüştüren, öğrenci liderliğinde bir programdır.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+
+            <div className="mt-9 flex flex-wrap gap-3">
               <a
                 href="#programlar"
-                className="inline-flex min-h-12 items-center justify-center rounded-lg bg-leaf-500 px-6 text-base font-medium text-white transition-colors hover:bg-leaf-600"
+                className="group inline-flex min-h-13 items-center justify-center gap-2 rounded-full bg-ink-on-bg px-7 text-[15px] font-semibold text-bg transition-opacity hover:opacity-90"
               >
                 Programları Keşfet
+                <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">
+                  →
+                </span>
               </a>
               <a
                 href="#iletisim"
-                className="inline-flex min-h-12 items-center justify-center rounded-lg bg-white/10 px-6 text-base font-medium text-white ring-1 ring-inset ring-white/30 transition-colors hover:bg-white/20"
+                className="inline-flex min-h-13 items-center justify-center rounded-full border border-ink-on-bg/25 bg-bg/40 px-7 text-[15px] font-semibold text-ink-on-bg backdrop-blur transition-colors hover:border-ink-on-bg/50"
               >
                 Bize Ulaşın
               </a>
             </div>
           </div>
+
+          <HeroSlideshow />
         </div>
       </section>
 
       <main id="main" className="flex-1">
         {/* What we do */}
         <section className="container-page py-16 sm:py-20">
-          <h2 className="text-2xl font-semibold text-navy-900 sm:text-3xl">Ne Yapıyoruz</h2>
+          <h2 className="text-2xl font-semibold text-ink-on-bg sm:text-3xl">Ne Yapıyoruz</h2>
           <div className="mt-8 grid gap-6 sm:grid-cols-2">
-            <div className="rounded-2xl bg-white p-6 ring-1 ring-navy-100">
-              <h3 className="text-lg font-semibold text-navy-900">Mentorluk</h3>
-              <p className="mt-2 leading-relaxed text-navy-600">
+            <div className="rounded-2xl bg-surface p-6 ring-1 ring-line-soft">
+              <h3 className="text-lg font-semibold text-ink">Mentorluk</h3>
+              <p className="mt-2 leading-relaxed text-ink-2">
                 Lise öğrencisi mentorlar, ortaokul öğrencilerine yalnızca bir konuyu anlatmaz; proje geliştirme
                 süreci boyunca onlara rehberlik eder.
               </p>
             </div>
-            <div className="rounded-2xl bg-white p-6 ring-1 ring-navy-100">
-              <h3 className="text-lg font-semibold text-navy-900">Gerçek Çıktı</h3>
-              <p className="mt-2 leading-relaxed text-navy-600">
+            <div className="rounded-2xl bg-surface p-6 ring-1 ring-line-soft">
+              <h3 className="text-lg font-semibold text-ink">Gerçek Çıktı</h3>
+              <p className="mt-2 leading-relaxed text-ink-2">
                 Amaç yalnızca bir konuyu öğrenmek değildir. Öğrenciler somut bir şey ortaya koyar — alana göre bu
                 araştırma, analiz, tasarım, deney, yazılım veya mühendislik çalışması olabilir.
               </p>
@@ -135,22 +128,22 @@ export default async function HomePage() {
 
         {/* Programs */}
         {onlineProgram || bilsemProgram ? (
-          <section id="programlar" className="bg-white py-16 sm:py-20">
+          <section id="programlar" className="bg-surface py-16 sm:py-20">
             <div className="container-page">
-              <h2 className="text-2xl font-semibold text-navy-900 sm:text-3xl">Programlarımız</h2>
+              <h2 className="text-2xl font-semibold text-ink-on-bg sm:text-3xl">Programlarımız</h2>
               <div className="mt-8 grid gap-6 sm:grid-cols-2">
                 {onlineProgram ? (
-                  <div className="rounded-2xl bg-sand-50 p-6 ring-1 ring-navy-100">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-leaf-700">Program</p>
-                    <h3 className="mt-1 text-xl font-semibold text-navy-900">{onlineProgram.name}</h3>
-                    <p className="mt-3 leading-relaxed text-navy-600">{onlineProgram.description}</p>
+                  <div className="rounded-2xl bg-bg p-6 ring-1 ring-line-soft">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-ok">Program</p>
+                    <h3 className="mt-1 text-xl font-semibold text-ink">{onlineProgram.name}</h3>
+                    <p className="mt-3 leading-relaxed text-ink-2">{onlineProgram.description}</p>
                   </div>
                 ) : null}
                 {bilsemProgram ? (
-                  <div className="rounded-2xl bg-sand-50 p-6 ring-1 ring-navy-100">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-leaf-700">Program</p>
-                    <h3 className="mt-1 text-xl font-semibold text-navy-900">{bilsemProgram.name}</h3>
-                    <p className="mt-3 leading-relaxed text-navy-600">{bilsemProgram.description}</p>
+                  <div className="rounded-2xl bg-bg p-6 ring-1 ring-line-soft">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-ok">Program</p>
+                    <h3 className="mt-1 text-xl font-semibold text-ink">{bilsemProgram.name}</h3>
+                    <p className="mt-3 leading-relaxed text-ink-2">{bilsemProgram.description}</p>
                   </div>
                 ) : null}
               </div>
@@ -160,29 +153,29 @@ export default async function HomePage() {
 
         {/* How it works */}
         <section id="surec" className="container-page py-16 sm:py-20">
-          <h2 className="text-2xl font-semibold text-navy-900 sm:text-3xl">Süreç Nasıl İşliyor</h2>
+          <h2 className="text-2xl font-semibold text-ink-on-bg sm:text-3xl">Süreç Nasıl İşliyor</h2>
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {HOW_IT_WORKS.map((item) => (
-              <div key={item.step} className="rounded-2xl bg-white p-6 ring-1 ring-navy-100">
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-navy-800 text-sm font-semibold text-white">
+              <div key={item.step} className="rounded-2xl bg-surface p-6 ring-1 ring-line-soft">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface-3 text-sm font-semibold text-ink">
                   {item.step}
                 </span>
-                <h3 className="mt-4 text-base font-semibold text-navy-900">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-navy-600">{item.body}</p>
+                <h3 className="mt-4 text-base font-semibold text-ink">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink-2">{item.body}</p>
               </div>
             ))}
           </div>
         </section>
 
         {/* STEM areas */}
-        <section className="bg-white py-16 sm:py-20">
+        <section className="bg-surface py-16 sm:py-20">
           <div className="container-page">
-            <h2 className="text-2xl font-semibold text-navy-900 sm:text-3xl">Çalışma Alanları</h2>
+            <h2 className="text-2xl font-semibold text-ink-on-bg sm:text-3xl">Çalışma Alanları</h2>
             <div className="mt-8 flex flex-wrap gap-3">
               {Object.values(disciplineLabels).map((label) => (
                 <span
                   key={label}
-                  className="inline-flex min-h-10 items-center rounded-full bg-sand-100 px-4 text-sm font-medium text-navy-800 ring-1 ring-inset ring-navy-100"
+                  className="inline-flex min-h-10 items-center rounded-full bg-surface-2 px-4 text-sm font-medium text-ink ring-1 ring-inset ring-line-soft"
                 >
                   {label}
                 </span>
@@ -193,12 +186,12 @@ export default async function HomePage() {
 
         {/* Why STEM & BUDS */}
         <section className="container-page py-16 sm:py-20">
-          <h2 className="text-2xl font-semibold text-navy-900 sm:text-3xl">Neden STEM &amp; BUDS</h2>
+          <h2 className="text-2xl font-semibold text-ink-on-bg sm:text-3xl">Neden STEM &amp; BUDS</h2>
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {WHY_ITEMS.map((item) => (
-              <div key={item.title} className="rounded-2xl bg-white p-6 ring-1 ring-navy-100">
-                <h3 className="text-base font-semibold text-navy-900">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-navy-600">{item.body}</p>
+              <div key={item.title} className="rounded-2xl bg-surface p-6 ring-1 ring-line-soft">
+                <h3 className="text-base font-semibold text-ink">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink-2">{item.body}</p>
               </div>
             ))}
           </div>
@@ -206,14 +199,14 @@ export default async function HomePage() {
 
         {/* Highlights — only when an Executive has published one via the CMS */}
         {highlights.length > 0 ? (
-          <section className="bg-white py-16 sm:py-20">
+          <section className="bg-surface py-16 sm:py-20">
             <div className="container-page">
-              <h2 className="text-2xl font-semibold text-navy-900 sm:text-3xl">Öne Çıkanlar</h2>
+              <h2 className="text-2xl font-semibold text-ink-on-bg sm:text-3xl">Öne Çıkanlar</h2>
               <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {highlights.map((h) => (
-                  <div key={h.id} className="rounded-2xl bg-sand-50 p-6 ring-1 ring-navy-100">
-                    <h3 className="text-base font-semibold text-navy-900">{h.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-navy-600">{h.body}</p>
+                  <div key={h.id} className="rounded-2xl bg-bg p-6 ring-1 ring-line-soft">
+                    <h3 className="text-base font-semibold text-ink">{h.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-ink-2">{h.body}</p>
                   </div>
                 ))}
               </div>
@@ -224,13 +217,20 @@ export default async function HomePage() {
         {/* Leadership — only when at least one profile is public */}
         {leadership.length > 0 ? (
           <section className="container-page py-16 sm:py-20">
-            <h2 className="text-2xl font-semibold text-navy-900 sm:text-3xl">Yönetim Ekibimiz</h2>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <h2 className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink-on-bg sm:text-3xl">
+                Yönetim ekibimizle tanışın
+              </h2>
+              <Link href="/ekibimiz" className="text-sm font-semibold text-ok hover:underline">
+                Tüm ekibi gör →
+              </Link>
+            </div>
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {leadership.map((person) => (
-                <div key={person.id} className="rounded-2xl bg-white p-6 ring-1 ring-navy-100">
-                  <h3 className="text-base font-semibold text-navy-900">{person.fullName}</h3>
-                  <p className="text-sm text-leaf-700">{person.title}</p>
-                  <p className="mt-2 text-sm leading-relaxed text-navy-600">{person.bio}</p>
+                <div key={person.id} className="rounded-2xl bg-surface p-6 ring-1 ring-line-soft">
+                  <h3 className="text-base font-semibold text-ink">{person.fullName}</h3>
+                  <p className="text-sm text-ok">{person.title}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-ink-2">{person.bio}</p>
                 </div>
               ))}
             </div>
@@ -239,20 +239,20 @@ export default async function HomePage() {
 
         {/* News — only when at least one post is published */}
         {news.length > 0 ? (
-          <section className="bg-white py-16 sm:py-20">
+          <section className="bg-surface py-16 sm:py-20">
             <div className="container-page">
               <div className="flex items-end justify-between">
-                <h2 className="text-2xl font-semibold text-navy-900 sm:text-3xl">Haberler</h2>
-                <Link href="/haberler" className="text-sm font-medium text-leaf-700 hover:underline">
+                <h2 className="text-2xl font-semibold text-ink-on-bg sm:text-3xl">Haberler</h2>
+                <Link href="/haberler" className="text-sm font-medium text-ok hover:underline">
                   Tümünü gör →
                 </Link>
               </div>
               <div className="mt-8 grid gap-6 sm:grid-cols-3">
                 {news.map((post) => (
-                  <Link key={post.id} href={`/haberler/${post.slug}`} className="block rounded-2xl bg-sand-50 p-6 ring-1 ring-navy-100 hover:ring-navy-300">
-                    {post.publishedAt ? <p className="text-xs text-navy-400">{formatDateTr(post.publishedAt)}</p> : null}
-                    <h3 className="mt-2 text-base font-semibold text-navy-900">{post.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-navy-600">{post.summary}</p>
+                  <Link key={post.id} href={`/haberler/${post.slug}`} className="block rounded-2xl bg-bg p-6 ring-1 ring-line-soft hover:ring-line">
+                    {post.publishedAt ? <p className="text-xs text-ink-3">{formatDateTr(post.publishedAt)}</p> : null}
+                    <h3 className="mt-2 text-base font-semibold text-ink">{post.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-ink-2">{post.summary}</p>
                   </Link>
                 ))}
               </div>
@@ -262,34 +262,35 @@ export default async function HomePage() {
 
         {/* About */}
         <section className="container-page py-16 sm:py-20">
-          <h2 className="text-2xl font-semibold text-navy-900 sm:text-3xl">Hakkımızda</h2>
-          <p className="mt-4 max-w-3xl leading-relaxed text-navy-600">
+          <h2 className="text-2xl font-semibold text-ink-on-bg sm:text-3xl">Hakkımızda</h2>
+          <p className="mt-4 max-w-3xl leading-relaxed text-ink-2">
             STEM &amp; BUDS, Üsküdar Amerikan Lisesi öğrenci topluluğuyla organik bir bağa sahip, öğrenciler
             tarafından kurulan ve yürütülen bir mentorluk ve proje programıdır.
           </p>
         </section>
 
         {/* Contact */}
-        <section id="iletisim" className="bg-navy-900 py-16 text-white sm:py-20">
+        <section id="iletisim" className="bg-bg py-16 text-ink sm:py-20">
           <div className="container-page grid gap-10 lg:grid-cols-2">
             <div>
               <h2 className="text-2xl font-semibold sm:text-3xl">Bize Ulaşın</h2>
-              <p className="mt-4 max-w-md leading-relaxed text-navy-100">
+              <p className="mt-4 max-w-md leading-relaxed text-ink">
                 Okul temsilcisi misiniz, mentor olmak mı istiyorsunuz, yoksa öğrenci misiniz? Aşağıdaki formu
                 doldurun, size dönüş yapalım.
               </p>
-              <p className="mt-6 text-sm text-navy-300">stemandbuds01@gmail.com</p>
+              <a
+                href="mailto:info@stemandbuds.com"
+                className="mt-6 inline-block text-sm font-semibold text-ok hover:underline"
+              >
+                info@stemandbuds.com
+              </a>
             </div>
             <ContactForm />
           </div>
         </section>
       </main>
 
-      <footer className="bg-navy-950 py-8 text-sm text-navy-400">
-        <div className="container-page">
-          <p>© {new Date().getFullYear()} STEM &amp; BUDS Türkiye</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

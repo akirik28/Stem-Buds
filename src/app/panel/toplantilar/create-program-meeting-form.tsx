@@ -61,31 +61,31 @@ export function CreateProgramMeetingForm({
 
       <div>
         <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-navy-700">Katılımcılar</p>
+          <p className="text-sm font-medium text-ink-2">Katılımcılar</p>
           <button
             type="button"
-            className="text-xs text-navy-500 hover:underline"
+            className="text-xs text-ink-3 hover:underline"
             onClick={() => setSelected(selected.size === candidates.length ? new Set() : new Set(candidates.map((c) => c.userId)))}
           >
             {selected.size === candidates.length ? 'Seçimi temizle' : 'Herkesi seç'}
           </button>
         </div>
         {candidates.length === 0 ? (
-          <p className="mt-2 text-sm text-navy-500">Bu Program’da atanmış chapter head veya mentor bulunmuyor.</p>
+          <p className="mt-2 text-sm text-ink-3">Bu Program’da atanmış chapter head veya mentor bulunmuyor.</p>
         ) : (
-          <div className="mt-2 max-h-64 space-y-1 overflow-y-auto rounded-lg border border-navy-100 p-2">
+          <div className="mt-2 max-h-64 space-y-1 overflow-y-auto rounded-lg border border-line-soft p-2">
             {candidates.map((candidate) => (
-              <label key={candidate.userId} className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-sand-50">
+              <label key={candidate.userId} className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-bg">
                 <input
                   type="checkbox"
                   name="participantUserIds"
                   value={candidate.userId}
                   checked={selected.has(candidate.userId)}
                   onChange={() => toggle(candidate.userId)}
-                  className="accent-leaf-600"
+                  className="accent-ok"
                 />
-                <span className="text-navy-800">{candidate.fullName}</span>
-                <span className="text-xs text-navy-400">{candidate.role === 'chapter_head' ? 'Chapter Head' : 'Mentor'}</span>
+                <span className="text-ink">{candidate.fullName}</span>
+                <span className="text-xs text-ink-3">{candidate.role === 'chapter_head' ? 'Chapter Head' : 'Mentor'}</span>
               </label>
             ))}
           </div>

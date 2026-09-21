@@ -33,7 +33,7 @@ export function SessionLifecycleControls({
         {canCancel ? (
           confirmingCancel ? (
             <>
-              <span className="text-xs text-navy-500">Bu oturum iptal edilsin mi?</span>
+              <span className="text-xs text-ink-3">Bu oturum iptal edilsin mi?</span>
               <Button
                 type="button"
                 variant="danger"

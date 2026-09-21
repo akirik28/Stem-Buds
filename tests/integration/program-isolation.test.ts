@@ -228,6 +228,9 @@ describe('authorization stays program-aware through chapter/group scope', () => 
       teamLeaderGroupIds: [],
       advisorProgramIds: [],
       advisorChapterIds: [],
+      parentStudentUserIds: [],
+      parentGroupIds: [],
+      parentChapterIds: [],
     };
 
     expect(canViewChapter(headScope, onlineChapter.id)).toBe(true);

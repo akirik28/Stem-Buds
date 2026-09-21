@@ -34,8 +34,8 @@ export function CreateAcademicYearForm() {
         <Input id="endDate" name="endDate" type="date" required />
       </Field>
       <div className="flex items-end gap-2">
-        <label className="flex items-center gap-2 text-sm text-navy-700">
-          <input type="checkbox" name="activate" className="h-4 w-4 rounded border-navy-300" />
+        <label className="flex items-center gap-2 text-sm text-ink-2">
+          <input type="checkbox" name="activate" className="h-4 w-4 rounded border-line" />
           Aktif yap
         </label>
       </div>

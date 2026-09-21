@@ -29,7 +29,7 @@ export function CreateNewsForm() {
   }
 
   return (
-    <form action={formAction} className="space-y-3 rounded-lg border border-navy-100 p-3">
+    <form action={formAction} className="space-y-3 rounded-lg border border-line-soft p-3">
       {state.error ? <Alert tone="error">{state.error}</Alert> : null}
       <Field label="Başlık" htmlFor="new-news-title" required>
         <Input id="new-news-title" name="title" required minLength={2} />

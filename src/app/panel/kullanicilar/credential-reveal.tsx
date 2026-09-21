@@ -34,14 +34,14 @@ export function CredentialReveal({
   return (
     <div className="mt-4 space-y-3">
       <Alert tone="success">{title}</Alert>
-      <div className="rounded-lg border border-navy-200 bg-navy-50 p-4">
+      <div className="rounded-lg border border-line bg-surface-2 p-4">
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-          <dt className="text-navy-500">Kullanıcı adı</dt>
-          <dd className="font-mono text-navy-900">{credential.username}</dd>
-          <dt className="text-navy-500">Geçici şifre</dt>
-          <dd className="font-mono text-navy-900">{credential.temporaryPassword}</dd>
+          <dt className="text-ink-3">Kullanıcı adı</dt>
+          <dd className="font-mono text-ink">{credential.username}</dd>
+          <dt className="text-ink-3">Geçici şifre</dt>
+          <dd className="font-mono text-ink">{credential.temporaryPassword}</dd>
         </dl>
-        <p className="mt-3 text-xs text-navy-500">
+        <p className="mt-3 text-xs text-ink-3">
           Bu bilgiler yalnızca şimdi gösteriliyor ve hiçbir yerde saklanmıyor. Kullanıcı ilk
           girişte kalıcı bir şifre belirlemek zorunda kalacak.
         </p>

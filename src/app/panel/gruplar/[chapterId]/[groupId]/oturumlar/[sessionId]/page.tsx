@@ -83,12 +83,12 @@ export default async function WeeklySessionPage({
         <div>
           <Link
             href={`/panel/gruplar/${chapter.id}/${group.id}`}
-            className="text-sm text-navy-500 hover:text-navy-700"
+            className="text-sm text-ink-3 hover:text-ink-2"
           >
             ← {group.name}
           </Link>
           <div className="mt-1 flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold text-navy-900">{group.name} — {session.weekNumber}. Hafta</h1>
+            <h1 className="text-2xl font-semibold text-ink">{group.name} — {session.weekNumber}. Hafta</h1>
             {isComplete ? (
               <StatusPill tone="ok" icon="✅">
                 Tamamlandı
@@ -102,7 +102,7 @@ export default async function WeeklySessionPage({
               <StatusPill tone="neutral">{weeklySessionStateLabels[session.state]}</StatusPill>
             ) : null}
           </div>
-          <p className="mt-1 text-sm text-navy-500">
+          <p className="mt-1 text-sm text-ink-3">
             {formatDateTr(session.scheduledStartAt)} · {formatTimeRangeTr(session.scheduledStartAt, session.scheduledEndAt)}
           </p>
         </div>
@@ -117,8 +117,8 @@ export default async function WeeklySessionPage({
 
       {!isComplete && missing.length > 0 ? (
         <Card className="border-l-4 border-amber-500">
-          <p className="text-sm font-medium text-navy-800">Eksik gereklilikler</p>
-          <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-navy-600">
+          <p className="text-sm font-medium text-ink">Eksik gereklilikler</p>
+          <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-ink-2">
             {missing.map((item) => (
               <li key={item.code}>{item.label}</li>
             ))}
@@ -128,7 +128,7 @@ export default async function WeeklySessionPage({
 
       {session.state === 'holiday' ? (
         <Card>
-          <p className="text-sm text-navy-700">
+          <p className="text-sm text-ink-2">
             🏖️ Bu hafta çalışma yok / tatil{session.cancellationReason ? `: ${session.cancellationReason}` : '.'}
           </p>
         </Card>
@@ -217,7 +217,7 @@ export default async function WeeklySessionPage({
           {previousHomework ? (
             <Card>
               <CardTitle>Önceki Haftanın Ödev Sonuçları</CardTitle>
-              <p className="mt-1 text-sm text-navy-500">{previousHomework.description}</p>
+              <p className="mt-1 text-sm text-ink-3">{previousHomework.description}</p>
               {canFinalize ? (
                 <PreviousHomeworkForm
                   key={workLog?.previousHomeworkFinalizedAt?.toISOString() ?? 'unset'}
@@ -259,15 +259,15 @@ function ReadOnlyAttendance({
   students: { id: string; fullName: string; username: string }[];
   attendanceByMembership: Map<string, { status: keyof typeof attendanceLabels; note: string | null }>;
 }) {
-  if (students.length === 0) return <p className="mt-2 text-sm text-navy-500">Grup üyesi yok.</p>;
+  if (students.length === 0) return <p className="mt-2 text-sm text-ink-3">Grup üyesi yok.</p>;
   return (
-    <ul className="mt-3 divide-y divide-navy-100">
+    <ul className="mt-3 divide-y divide-line-soft">
       {students.map((s) => {
         const record = attendanceByMembership.get(s.id);
         return (
           <li key={s.id} className="flex items-center justify-between py-2 text-sm">
             <span>{s.fullName}</span>
-            <span className="text-navy-500">{record ? attendanceLabels[record.status] : 'Bekliyor'}</span>
+            <span className="text-ink-3">{record ? attendanceLabels[record.status] : 'Bekliyor'}</span>
           </li>
         );
       })}
@@ -276,19 +276,19 @@ function ReadOnlyAttendance({
 }
 
 function ReadOnlyNarrative({ workLog }: { workLog: { whatWeDid: string | null; nextWeekGoal: string | null; projectHealth: string | null } | null }) {
-  if (!workLog?.whatWeDid) return <p className="mt-2 text-sm text-navy-500">Henüz rapor girilmedi.</p>;
+  if (!workLog?.whatWeDid) return <p className="mt-2 text-sm text-ink-3">Henüz rapor girilmedi.</p>;
   return (
-    <div className="mt-2 space-y-2 text-sm text-navy-700">
+    <div className="mt-2 space-y-2 text-sm text-ink-2">
       <p>{workLog.whatWeDid}</p>
-      {workLog.nextWeekGoal ? <p className="text-navy-500">Gelecek hafta: {workLog.nextWeekGoal}</p> : null}
+      {workLog.nextWeekGoal ? <p className="text-ink-3">Gelecek hafta: {workLog.nextWeekGoal}</p> : null}
     </div>
   );
 }
 
 function ReadOnlyHomework({ homework }: { homework: { noHomework: boolean; description: string | null } | null }) {
-  if (!homework) return <p className="mt-2 text-sm text-navy-500">Henüz belirlenmedi.</p>;
+  if (!homework) return <p className="mt-2 text-sm text-ink-3">Henüz belirlenmedi.</p>;
   return (
-    <p className="mt-2 text-sm text-navy-700">
+    <p className="mt-2 text-sm text-ink-2">
       {homework.noHomework ? 'Bu hafta ödev yok.' : homework.description}
     </p>
   );
@@ -302,11 +302,11 @@ function ReadOnlyHomeworkStatuses({
   statusByMembership: Map<string, { status: keyof typeof homeworkStatusLabels }>;
 }) {
   return (
-    <ul className="mt-3 divide-y divide-navy-100">
+    <ul className="mt-3 divide-y divide-line-soft">
       {students.map((s) => (
         <li key={s.id} className="flex items-center justify-between py-2 text-sm">
           <span>{s.fullName}</span>
-          <span className="text-navy-500">
+          <span className="text-ink-3">
             {homeworkStatusLabels[statusByMembership.get(s.id)?.status ?? 'pending']}
           </span>
         </li>

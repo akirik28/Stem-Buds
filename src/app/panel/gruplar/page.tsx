@@ -32,8 +32,8 @@ export default async function ChaptersPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-navy-900">Gruplar</h1>
-        <p className="mt-1 text-sm text-navy-500">Chapter seçerek gruplarını görüntüleyin.</p>
+        <h1 className="text-2xl font-semibold text-ink">Gruplar</h1>
+        <p className="mt-1 text-sm text-ink-3">Chapter seçerek gruplarını görüntüleyin.</p>
       </div>
 
       <nav aria-label="Program filtresi" className="flex flex-wrap gap-2">
@@ -63,20 +63,20 @@ export default async function ChaptersPage({
             const program = programs.find((p) => p.id === chapter.programId);
             return (
               <Link key={chapter.id} href={`/panel/gruplar/${chapter.id}`}>
-                <Card className="h-full transition-colors hover:ring-navy-300">
+                <Card className="h-full transition-colors hover:ring-line">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-semibold text-navy-900">{chapter.name}</p>
-                      <p className="text-sm text-navy-500">{chapter.code}</p>
+                      <p className="font-semibold text-ink">{chapter.name}</p>
+                      <p className="text-sm text-ink-3">{chapter.code}</p>
                     </div>
                     {!chapter.isActive ? <StatusPill tone="neutral">Pasif</StatusPill> : null}
                   </div>
                   {program ? (
-                    <p className="mt-3 text-xs font-medium uppercase tracking-wide text-navy-400">
+                    <p className="mt-3 text-xs font-medium uppercase tracking-wide text-ink-3">
                       {program.shortName}
                     </p>
                   ) : null}
-                  {chapter.city ? <p className="mt-1 text-sm text-navy-500">{chapter.city}</p> : null}
+                  {chapter.city ? <p className="mt-1 text-sm text-ink-3">{chapter.city}</p> : null}
                 </Card>
               </Link>
             );
@@ -93,8 +93,8 @@ function ProgramFilterLink({ label, active, href }: { label: string; active: boo
       href={href}
       className={
         active
-          ? 'inline-flex min-h-9 items-center rounded-full bg-navy-800 px-3.5 text-sm font-medium text-white'
-          : 'inline-flex min-h-9 items-center rounded-full bg-white px-3.5 text-sm font-medium text-navy-600 ring-1 ring-navy-200 hover:bg-navy-50'
+          ? 'inline-flex min-h-9 items-center rounded-full bg-surface-3 px-3.5 text-sm font-medium text-ink'
+          : 'inline-flex min-h-9 items-center rounded-full bg-surface px-3.5 text-sm font-medium text-ink-2 ring-1 ring-line hover:bg-surface-2'
       }
     >
       {label}

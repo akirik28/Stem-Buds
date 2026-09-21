@@ -40,8 +40,8 @@ export default async function PublicSiteContentPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-navy-900">Site İçerikleri</h1>
-        <p className="mt-1 text-sm text-navy-500">Genel siteyi (anasayfa, haberler, iletişim) yönetin.</p>
+        <h1 className="text-2xl font-semibold text-ink">Site İçerikleri</h1>
+        <p className="mt-1 text-sm text-ink-3">Genel siteyi (anasayfa, haberler, iletişim) yönetin.</p>
       </div>
 
       <Card>
@@ -50,9 +50,9 @@ export default async function PublicSiteContentPage() {
           <CreateHighlightForm />
         </div>
         {highlights.length === 0 ? (
-          <p className="mt-4 text-sm text-navy-500">Henüz öne çıkan içerik eklenmedi.</p>
+          <p className="mt-4 text-sm text-ink-3">Henüz öne çıkan içerik eklenmedi.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-navy-100">
+          <ul className="mt-4 divide-y divide-line-soft">
             {highlights.map((highlight) => (
               <HighlightRow key={highlight.id} highlight={highlight} />
             ))}
@@ -66,9 +66,9 @@ export default async function PublicSiteContentPage() {
           <CreateLeadershipForm />
         </div>
         {leadership.length === 0 ? (
-          <p className="mt-4 text-sm text-navy-500">Henüz yönetim profili eklenmedi.</p>
+          <p className="mt-4 text-sm text-ink-3">Henüz yönetim profili eklenmedi.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-navy-100">
+          <ul className="mt-4 divide-y divide-line-soft">
             {leadership.map((profile) => (
               <LeadershipRow key={profile.id} profile={profile} />
             ))}
@@ -82,9 +82,9 @@ export default async function PublicSiteContentPage() {
           <CreateNewsForm />
         </div>
         {news.length === 0 ? (
-          <p className="mt-4 text-sm text-navy-500">Henüz haber eklenmedi.</p>
+          <p className="mt-4 text-sm text-ink-3">Henüz haber eklenmedi.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-navy-100">
+          <ul className="mt-4 divide-y divide-line-soft">
             {news.map((post) => (
               <NewsRow
                 key={post.id}
@@ -109,7 +109,7 @@ export default async function PublicSiteContentPage() {
           <MediaUploadForm />
         </div>
         {media.length === 0 ? (
-          <p className="mt-4 text-sm text-navy-500">Henüz görsel yüklenmedi.</p>
+          <p className="mt-4 text-sm text-ink-3">Henüz görsel yüklenmedi.</p>
         ) : (
           <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {media.map((item) => (
@@ -124,7 +124,7 @@ export default async function PublicSiteContentPage() {
         {messages.length === 0 ? (
           <EmptyState title="Henüz mesaj yok" description="Genel siteden gelen iletişim formu mesajları burada görünecek." />
         ) : (
-          <ul className="mt-4 divide-y divide-navy-100">
+          <ul className="mt-4 divide-y divide-line-soft">
             {messages.map((item) => (
               <ContactMessageRow
                 key={item.id}

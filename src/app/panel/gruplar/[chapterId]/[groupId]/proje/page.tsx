@@ -64,12 +64,12 @@ export default async function ProjectPage({
       <div>
         <Link
           href={`/panel/gruplar/${chapter.id}/${group.id}`}
-          className="text-sm text-navy-500 hover:text-navy-700"
+          className="text-sm text-ink-3 hover:text-ink-2"
         >
           ← {group.name}
         </Link>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold text-navy-900">
+          <h1 className="text-2xl font-semibold text-ink">
             {project ? project.name : `${group.name} — Proje`}
           </h1>
           {currentSession ? (
@@ -77,8 +77,8 @@ export default async function ProjectPage({
               href={`/panel/gruplar/${chapter.id}/${group.id}/oturumlar/${currentSession.id}`}
               className={
                 canEditNarrative
-                  ? 'inline-flex min-h-9 items-center rounded-full bg-navy-800 px-3.5 text-sm font-medium text-white hover:bg-navy-700'
-                  : 'text-sm text-navy-500 hover:text-navy-700'
+                  ? 'inline-flex min-h-9 items-center rounded-full bg-surface-3 px-3.5 text-sm font-medium text-bg hover:bg-brand'
+                  : 'text-sm text-ink-3 hover:text-ink-2'
               }
             >
               {canEditNarrative
@@ -87,7 +87,7 @@ export default async function ProjectPage({
             </Link>
           ) : null}
         </div>
-        <p className="mt-1 text-sm text-navy-500">
+        <p className="mt-1 text-sm text-ink-3">
           {chapter.name} · {group.name}
           {mentor ? ` · Mentor: ${mentor.fullName}` : ''}
         </p>
@@ -172,9 +172,9 @@ async function ProjectContent({
       <Card>
         <CardTitle>Milestonelar</CardTitle>
         {milestones.length === 0 ? (
-          <p className="mt-2 text-sm text-navy-500">Henüz milestone eklenmedi.</p>
+          <p className="mt-2 text-sm text-ink-3">Henüz milestone eklenmedi.</p>
         ) : (
-          <ul className="mt-2 divide-y divide-navy-100">
+          <ul className="mt-2 divide-y divide-line-soft">
             {milestones.map((milestone) => (
               <MilestoneRow
                 key={milestone.id}
@@ -202,26 +202,26 @@ async function ProjectContent({
       <Card>
         <CardTitle>Proje Yolculuğu</CardTitle>
         {journey.length === 0 ? (
-          <p className="mt-2 text-sm text-navy-500">
+          <p className="mt-2 text-sm text-ink-3">
             Henüz tamamlanmış bir haftalık kayıt veya milestone bulunmuyor.
           </p>
         ) : (
-          <ol className="mt-3 space-y-4 border-l-2 border-navy-100 pl-4">
+          <ol className="mt-3 space-y-4 border-l-2 border-line-soft pl-4">
             {journey.map((entry, index) => (
               <li key={index}>
-                <p className="text-xs text-navy-400">
+                <p className="text-xs text-ink-3">
                   <span className="font-medium uppercase tracking-wide">
                     {entry.type === 'session' ? `${entry.weekNumber}. Hafta` : 'Milestone'} ·{' '}
                     {formatShortDateTr(entry.date)}
                   </span>
                   {entry.type === 'session' && entry.authorName ? ` · ${entry.authorName}` : ''}
                 </p>
-                <p className="text-sm text-navy-800">{entry.label}</p>
+                <p className="text-sm text-ink">{entry.label}</p>
                 {entry.type === 'session' && entry.problem ? (
                   <p className="mt-1 text-sm text-amber-700">🚧 {entry.problem}</p>
                 ) : null}
                 {entry.type === 'session' && entry.nextStep ? (
-                  <p className="mt-1 text-sm text-navy-500">Sıradaki adım: {entry.nextStep}</p>
+                  <p className="mt-1 text-sm text-ink-3">Sıradaki adım: {entry.nextStep}</p>
                 ) : null}
               </li>
             ))}
@@ -259,26 +259,26 @@ function ReadOnlyDetails({
     <dl className="mt-2 space-y-3 text-sm">
       {project.shortDescription ? (
         <div>
-          <dt className="font-medium text-navy-800">Kısa açıklama</dt>
-          <dd className="text-navy-600">{project.shortDescription}</dd>
+          <dt className="font-medium text-ink">Kısa açıklama</dt>
+          <dd className="text-ink-2">{project.shortDescription}</dd>
         </div>
       ) : null}
       {project.researchQuestion ? (
         <div>
-          <dt className="font-medium text-navy-800">Araştırma/problem sorusu</dt>
-          <dd className="text-navy-600">{project.researchQuestion}</dd>
+          <dt className="font-medium text-ink">Araştırma/problem sorusu</dt>
+          <dd className="text-ink-2">{project.researchQuestion}</dd>
         </div>
       ) : null}
       {project.purpose ? (
         <div>
-          <dt className="font-medium text-navy-800">Amaç</dt>
-          <dd className="text-navy-600">{project.purpose}</dd>
+          <dt className="font-medium text-ink">Amaç</dt>
+          <dd className="text-ink-2">{project.purpose}</dd>
         </div>
       ) : null}
       {project.startDate ? (
         <div>
-          <dt className="font-medium text-navy-800">Başlangıç tarihi</dt>
-          <dd className="text-navy-600">{formatShortDateTr(project.startDate)}</dd>
+          <dt className="font-medium text-ink">Başlangıç tarihi</dt>
+          <dd className="text-ink-2">{formatShortDateTr(project.startDate)}</dd>
         </div>
       ) : null}
     </dl>
@@ -292,7 +292,7 @@ function ReadOnlyOutcome({
 }) {
   return (
     <div className="mt-2 space-y-2 text-sm">
-      {project.outcomeSummary ? <p className="text-navy-700">{project.outcomeSummary}</p> : null}
+      {project.outcomeSummary ? <p className="text-ink-2">{project.outcomeSummary}</p> : null}
       {project.finalDelivered ? (
         <StatusPill tone="ok" icon="✅">
           Final proje teslim edildi
@@ -306,7 +306,7 @@ function ReadOnlyOutcome({
             href={project.externalReferenceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-navy-600 underline hover:text-navy-800"
+            className="text-ink-2 underline hover:text-ink"
           >
             Dış referans bağlantısı
           </a>

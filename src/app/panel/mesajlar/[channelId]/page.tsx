@@ -25,10 +25,10 @@ export default async function ChannelThreadPage({ params }: { params: Promise<{ 
   return (
     <div className="space-y-4">
       <div>
-        <Link href="/panel/mesajlar" className="text-sm text-navy-500 hover:text-navy-700">
+        <Link href="/panel/mesajlar" className="text-sm text-ink-3 hover:text-ink-2">
           ← Mesajlar
         </Link>
-        <h1 className="mt-1 text-xl font-semibold text-navy-900">{channel.name}</h1>
+        <h1 className="mt-1 text-xl font-semibold text-ink">{channel.name}</h1>
       </div>
 
       <ChannelThread

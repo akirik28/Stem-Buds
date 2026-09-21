@@ -16,15 +16,15 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="rounded-[--radius-card] bg-white p-6 shadow-xl sm:p-8">
-      <h1 className="text-xl font-semibold text-navy-900">{messages.auth.loginTitle}</h1>
-      <p className="mt-1 text-sm text-navy-500">
+    <div className="rounded-[--radius-card] bg-surface p-6 shadow-xl sm:p-8">
+      <h1 className="text-xl font-semibold text-ink">{messages.auth.loginTitle}</h1>
+      <p className="mt-1 text-sm text-ink-3">
         Kullanıcı adın ve şifrenle giriş yap.
       </p>
 
       <LoginForm />
 
-      <p className="mt-6 border-t border-navy-100 pt-4 text-xs leading-relaxed text-navy-500">
+      <p className="mt-6 border-t border-line-soft pt-4 text-xs leading-relaxed text-ink-3">
         {messages.auth.noPublicRegistration}
       </p>
     </div>

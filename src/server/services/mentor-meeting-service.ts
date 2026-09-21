@@ -65,7 +65,16 @@ export async function listMentorMeetings(scope: AccessScope, chapterId: string, 
   return getDb()
     .select()
     .from(mentorMeetings)
-    .where(and(eq(mentorMeetings.chapterId, chapterId), eq(mentorMeetings.academicYearId, academicYearId)))
+    .where(
+      and(
+        eq(mentorMeetings.chapterId, chapterId),
+        eq(mentorMeetings.academicYearId, academicYearId),
+        // A pending request is not a meeting yet — it has no agreed time in
+        // anyone's week. It surfaces only in the Chapter Head's request
+        // queue until it is approved.
+        eq(mentorMeetings.requestStatus, 'approved'),
+      ),
+    )
     .orderBy(mentorMeetings.startsAt);
 }
 
@@ -448,4 +457,184 @@ export async function setMentorMeetingAttendance(input: {
 
 export async function listMentorMeetingAttendance(meetingId: string): Promise<MeetingAttendanceRow[]> {
   return getDb().select().from(mentorMeetingAttendance).where(eq(mentorMeetingAttendance.meetingId, meetingId));
+}
+
+// ---------------------------------------------------------------------------
+// Meeting requests — a Mentor asks, the Chapter Head decides
+// ---------------------------------------------------------------------------
+
+/**
+ * A Mentor may not schedule a meeting (`canManageMentorMeetings` is Chapter
+ * Head and above) but is the person most likely to know one is needed. A
+ * request is a real `mentor_meetings` row in `pending` state: it carries the
+ * proposed time so approving it is a single decision, not a re-entry.
+ */
+export type RequestMentorMeetingInput = {
+  scope: AccessScope;
+  chapterId: string;
+  academicYearId: string;
+  title: string;
+  startsAt: Date;
+  endsAt: Date;
+  requestNote?: string | null;
+  actor: { id: string | null; name: string };
+};
+
+export async function requestMentorMeeting(input: RequestMentorMeetingInput): Promise<MentorMeeting> {
+  if (!isMentor(input.scope.role) || !input.scope.memberChapterIds.includes(input.chapterId)) {
+    throw validationError('Bu chapter için toplantı talep etme yetkiniz yok.');
+  }
+
+  const title = input.title.trim();
+  if (title.length === 0) throw validationError('Toplantı başlığı zorunludur.');
+  if (input.endsAt <= input.startsAt) throw validationError('Bitiş saati başlangıçtan sonra olmalıdır.');
+
+  return getDb().transaction(async (tx) => {
+    const [countRow] = await tx
+      .select({ value: count() })
+      .from(mentorMeetings)
+      .where(and(eq(mentorMeetings.chapterId, input.chapterId), eq(mentorMeetings.academicYearId, input.academicYearId)));
+
+    const [row] = await tx
+      .insert(mentorMeetings)
+      .values({
+        chapterId: input.chapterId,
+        programId: null,
+        academicYearId: input.academicYearId,
+        sequence: `Toplantı Talebi #${(countRow?.value ?? 0) + 1}`,
+        title,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+        requestStatus: 'pending',
+        requestedById: input.actor.id,
+        requestNote: input.requestNote?.trim() || null,
+        createdById: input.actor.id,
+      })
+      .returning();
+    if (!row) throw notFound('Toplantı talebi oluşturulamadı.');
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action: AUDIT_ACTIONS.mentorMeetingRequested,
+        targetType: 'mentor_meeting',
+        targetId: row.id,
+        targetLabel: row.title,
+        chapterId: row.chapterId,
+        academicYearId: row.academicYearId,
+      },
+      tx,
+    );
+
+    return row;
+  });
+}
+
+/** Requests awaiting this Chapter Head's decision. */
+export async function listPendingMeetingRequests(
+  scope: AccessScope,
+  chapterId: string,
+  academicYearId: string,
+): Promise<MentorMeeting[]> {
+  if (!canViewMentorMeetings(scope, chapterId)) return [];
+  return getDb()
+    .select()
+    .from(mentorMeetings)
+    .where(
+      and(
+        eq(mentorMeetings.chapterId, chapterId),
+        eq(mentorMeetings.academicYearId, academicYearId),
+        eq(mentorMeetings.requestStatus, 'pending'),
+      ),
+    )
+    .orderBy(mentorMeetings.startsAt);
+}
+
+export type DecideMeetingRequestInput = {
+  scope: AccessScope;
+  meetingId: string;
+  decision: 'approved' | 'declined';
+  /** Video link, attached at the moment the meeting becomes real. */
+  meetingUrl?: string | null;
+  actor: { id: string | null; name: string };
+};
+
+export async function decideMeetingRequest(input: DecideMeetingRequestInput): Promise<MentorMeeting> {
+  const db = getDb();
+  const [meeting] = await db.select().from(mentorMeetings).where(eq(mentorMeetings.id, input.meetingId)).limit(1);
+  if (!meeting) throw notFound('Toplantı talebi bulunamadı.');
+  if (!meeting.chapterId || !canManageChapter(input.scope, meeting.chapterId)) {
+    throw validationError('Bu talebi karara bağlama yetkiniz yok.');
+  }
+  if (meeting.requestStatus !== 'pending') {
+    throw validationError('Bu talep zaten karara bağlanmış.');
+  }
+
+  const url = input.meetingUrl?.trim() || null;
+  if (url && !/^https?:\/\//i.test(url)) {
+    throw validationError('Toplantı bağlantısı http:// veya https:// ile başlamalıdır.');
+  }
+
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(mentorMeetings)
+      .set({
+        requestStatus: input.decision,
+        decidedById: input.actor.id,
+        decidedAt: new Date(),
+        // An approved request becomes a scheduled meeting and takes the
+        // sequence label the rest of the product expects.
+        sequence: input.decision === 'approved' ? meeting.sequence.replace('Toplantı Talebi', 'Mentor Toplantısı') : meeting.sequence,
+        meetingUrl: input.decision === 'approved' ? url : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(mentorMeetings.id, input.meetingId))
+      .returning();
+    if (!row) throw notFound('Toplantı talebi güncellenemedi.');
+
+    await recordAudit(
+      {
+        actorUserId: input.actor.id,
+        actorName: input.actor.name,
+        action:
+          input.decision === 'approved'
+            ? AUDIT_ACTIONS.mentorMeetingRequestApproved
+            : AUDIT_ACTIONS.mentorMeetingRequestDeclined,
+        targetType: 'mentor_meeting',
+        targetId: row.id,
+        targetLabel: row.title,
+        chapterId: row.chapterId,
+        academicYearId: row.academicYearId,
+      },
+      tx,
+    );
+
+    return row;
+  });
+}
+
+export type PendingMeetingRequest = MentorMeeting & { requestedByName: string | null };
+
+/** Pending requests with the asking Mentor's name, for the decision queue. */
+export async function listPendingMeetingRequestsForDecision(
+  scope: AccessScope,
+  chapterId: string,
+  academicYearId: string,
+): Promise<PendingMeetingRequest[]> {
+  if (!canManageChapter(scope, chapterId)) return [];
+  const rows = await getDb()
+    .select({ meeting: mentorMeetings, requestedByName: users.fullName })
+    .from(mentorMeetings)
+    .leftJoin(users, eq(users.id, mentorMeetings.requestedById))
+    .where(
+      and(
+        eq(mentorMeetings.chapterId, chapterId),
+        eq(mentorMeetings.academicYearId, academicYearId),
+        eq(mentorMeetings.requestStatus, 'pending'),
+      ),
+    )
+    .orderBy(mentorMeetings.startsAt);
+
+  return rows.map((row) => ({ ...row.meeting, requestedByName: row.requestedByName }));
 }

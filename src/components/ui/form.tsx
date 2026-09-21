@@ -2,13 +2,13 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 const controlClasses =
-  'block w-full rounded-lg border-0 bg-white px-3 py-2.5 text-navy-900 ring-1 ring-inset ring-navy-200 ' +
-  'placeholder:text-navy-300 focus:ring-2 focus:ring-inset focus:ring-navy-500 disabled:bg-navy-50 ' +
-  'disabled:text-navy-400 aria-[invalid=true]:ring-red-500';
+  'block w-full rounded-lg border-0 bg-surface px-3 py-2.5 text-ink ring-1 ring-inset ring-line ' +
+  'placeholder:text-ink-3 focus:ring-2 focus:ring-inset focus:ring-brand disabled:bg-surface-2 ' +
+  'disabled:text-ink-3 aria-[invalid=true]:ring-red-500';
 
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
-    <label className={cn('block text-sm font-medium text-navy-800', className)} {...props} />
+    <label className={cn('block text-sm font-medium text-ink', className)} {...props} />
   );
 }
 
@@ -47,7 +47,7 @@ export function Field({ label, htmlFor, hint, error, required, children }: Field
       <Label htmlFor={htmlFor}>
         {label}
         {required ? (
-          <span className="ml-1 text-red-700" aria-hidden="true">
+          <span className="ml-1 text-danger" aria-hidden="true">
             *
           </span>
         ) : null}
@@ -55,12 +55,12 @@ export function Field({ label, htmlFor, hint, error, required, children }: Field
       </Label>
       {children}
       {hint ? (
-        <p id={`${htmlFor}-hint`} className="text-xs text-navy-500">
+        <p id={`${htmlFor}-hint`} className="text-xs text-ink-3">
           {hint}
         </p>
       ) : null}
       {error ? (
-        <p id={`${htmlFor}-error`} className="text-sm text-red-700">
+        <p id={`${htmlFor}-error`} className="text-sm text-danger">
           {error}
         </p>
       ) : null}

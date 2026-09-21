@@ -33,8 +33,8 @@ export default async function MessagesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-navy-900">Mesajlar</h1>
-        <p className="mt-1 text-sm text-navy-500">Yetkili olduğunuz kanallar.</p>
+        <h1 className="text-2xl font-semibold text-ink">Mesajlar</h1>
+        <p className="mt-1 text-sm text-ink-3">Yetkili olduğunuz kanallar.</p>
       </div>
 
       {channels.length === 0 ? (
@@ -43,13 +43,13 @@ export default async function MessagesPage() {
         <div className="space-y-2">
           {channels.map((channel) => (
             <Link key={channel.id} href={`/panel/mesajlar/${channel.id}`}>
-              <Card className="flex items-center justify-between gap-3 hover:bg-sand-50">
+              <Card className="flex items-center justify-between gap-3 hover:bg-bg">
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="font-medium text-navy-900">{channel.name}</p>
+                    <p className="font-medium text-ink">{channel.name}</p>
                     <StatusPill tone="neutral">{TYPE_LABEL[channel.type] ?? channel.type}</StatusPill>
                   </div>
-                  <p className="mt-1 text-xs text-navy-400">
+                  <p className="mt-1 text-xs text-ink-3">
                     {channel.lastMessageAt ? `Son mesaj: ${formatRelativeTr(channel.lastMessageAt)}` : 'Henüz mesaj yok'}
                   </p>
                 </div>

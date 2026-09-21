@@ -60,10 +60,10 @@ export function MilestoneRow({
     <li className="py-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-medium text-navy-900">{milestone.title}</p>
-          {milestone.description ? <p className="text-sm text-navy-500">{milestone.description}</p> : null}
+          <p className="font-medium text-ink">{milestone.title}</p>
+          {milestone.description ? <p className="text-sm text-ink-3">{milestone.description}</p> : null}
           {milestone.dueDate ? (
-            <p className="text-xs text-navy-400">Hedef: {formatShortDateTr(milestone.dueDate)}</p>
+            <p className="text-xs text-ink-3">Hedef: {formatShortDateTr(milestone.dueDate)}</p>
           ) : null}
         </div>
         <div className="flex items-center gap-2">

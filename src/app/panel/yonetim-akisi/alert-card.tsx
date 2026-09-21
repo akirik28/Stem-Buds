@@ -27,15 +27,15 @@ export function AlertCard({
             </StatusPill>
             {alert.status === 'investigating' ? <StatusPill tone="info">{alertStatusLabels.investigating}</StatusPill> : null}
           </div>
-          <p className="mt-2 font-medium text-navy-900">{alert.title}</p>
-          <p className="mt-1 text-sm text-navy-600">{alert.detail}</p>
-          <p className="mt-1 text-xs text-navy-400">
+          <p className="mt-2 font-medium text-ink">{alert.title}</p>
+          <p className="mt-1 text-sm text-ink-2">{alert.detail}</p>
+          <p className="mt-1 text-xs text-ink-3">
             Tespit: {formatRelativeTr(alert.firstDetectedAt)}
             {alert.assignedRoleLabel ? ` · Sorumlu: ${alert.assignedRoleLabel}` : ''}
           </p>
         </div>
         {linkHref ? (
-          <Link href={linkHref} className="text-sm text-navy-500 hover:text-navy-700">
+          <Link href={linkHref} className="text-sm text-ink-3 hover:text-ink-2">
             Görüntüle →
           </Link>
         ) : null}

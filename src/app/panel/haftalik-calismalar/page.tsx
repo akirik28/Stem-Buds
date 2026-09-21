@@ -45,8 +45,8 @@ export default async function HaftalikCalismalarPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-navy-900">Haftalık Çalışmalar</h1>
-        <p className="mt-1 text-sm text-navy-500">
+        <h1 className="text-2xl font-semibold text-ink">Haftalık Çalışmalar</h1>
+        <p className="mt-1 text-sm text-ink-3">
           {isMentor(scope.role)
             ? 'Mentor olduğunuz gruplar ve güncel haftalık oturumları.'
             : 'Grubunuz ve güncel haftalık oturumu.'}
@@ -64,19 +64,19 @@ export default async function HaftalikCalismalarPage() {
               <CardTitle>{group.name}</CardTitle>
               <Link
                 href={`/panel/gruplar/${chapter.id}/${group.id}`}
-                className="text-sm text-navy-500 hover:text-navy-700"
+                className="text-sm text-ink-3 hover:text-ink-2"
               >
                 Grubu görüntüle →
               </Link>
             </div>
-            <p className="mt-1 text-sm text-navy-500">{chapter.name}</p>
+            <p className="mt-1 text-sm text-ink-3">{chapter.name}</p>
 
             {current ? (
               <Link
                 href={`/panel/gruplar/${chapter.id}/${group.id}/oturumlar/${current.id}`}
-                className="mt-3 flex items-center justify-between rounded-lg border border-navy-100 px-3 py-2.5 text-sm hover:border-navy-200 hover:bg-navy-50"
+                className="mt-3 flex items-center justify-between rounded-lg border border-line-soft px-3 py-2.5 text-sm hover:border-line hover:bg-surface-2"
               >
-                <span className="text-navy-700">
+                <span className="text-ink-2">
                   {current.weekNumber}. Hafta — {formatShortDateTr(current.scheduledStartAt)} ·{' '}
                   {formatTimeRangeTr(current.scheduledStartAt, current.scheduledEndAt)}
                 </span>
@@ -85,7 +85,7 @@ export default async function HaftalikCalismalarPage() {
                 </StatusPill>
               </Link>
             ) : (
-              <p className="mt-3 text-sm text-navy-500">Henüz oturum oluşturulmadı.</p>
+              <p className="mt-3 text-sm text-ink-3">Henüz oturum oluşturulmadı.</p>
             )}
           </Card>
         ))

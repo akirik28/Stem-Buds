@@ -36,13 +36,13 @@ export function HomeworkForm({
       {state.error ? <Alert tone="error">{state.error}</Alert> : null}
       {state.success ? <Alert tone="success">{state.success}</Alert> : null}
 
-      <label className="flex items-center gap-2 text-sm text-navy-700">
+      <label className="flex items-center gap-2 text-sm text-ink-2">
         <input
           type="checkbox"
           name="noHomework"
           checked={noHomework}
           onChange={(e) => setNoHomework(e.target.checked)}
-          className="h-4 w-4 rounded border-navy-300"
+          className="h-4 w-4 rounded border-line"
         />
         Bu hafta ödev yok.
       </label>

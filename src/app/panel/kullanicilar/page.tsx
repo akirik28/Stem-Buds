@@ -33,8 +33,8 @@ export default async function UsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-navy-900">Kullanıcılar</h1>
-        <p className="mt-1 text-sm text-navy-500">
+        <h1 className="text-2xl font-semibold text-ink">Kullanıcılar</h1>
+        <p className="mt-1 text-sm text-ink-3">
           Hesaplar yalnızca burada, üst yönetim tarafından oluşturulur.
         </p>
       </div>
@@ -43,6 +43,9 @@ export default async function UsersPage() {
         <CardTitle>Yeni kullanıcı oluştur</CardTitle>
         <CreateUserForm
           chapterOptions={chapterOptions}
+          studentOptions={users
+            .filter((u) => u.role === 'student' && u.isActive)
+            .map((u) => ({ id: u.id, label: `${u.fullName} · @${u.username}` }))}
           programOptions={programs.map((program) => ({ id: program.id, label: program.name }))}
         />
       </Card>
@@ -52,7 +55,7 @@ export default async function UsersPage() {
         {users.length === 0 ? (
           <EmptyState title="Henüz kullanıcı bulunmuyor." />
         ) : (
-          <div className="mt-3 divide-y divide-navy-100">
+          <div className="mt-3 divide-y divide-line-soft">
             {await Promise.all(
               users.map(async (user) => (
                 <UserRow
@@ -76,7 +79,7 @@ export default async function UsersPage() {
         )}
       </Card>
 
-      <p className="text-xs text-navy-400">
+      <p className="text-xs text-ink-3">
         Roller: {Object.values(roleLabels).join(', ')}.
       </p>
       <StatusPillLegend />
