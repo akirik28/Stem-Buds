@@ -15,7 +15,7 @@ import {
 import { createChapter } from '@/server/services/chapter-service';
 import { createUser } from '@/server/services/user-admin';
 import { createAcademicYear } from '@/server/services/academic-year';
-import { assignGroupMentor, createGroup } from '@/server/services/group-service';
+import { addGroupMember, assignGroupMentor, createGroup } from '@/server/services/group-service';
 import { getProgramByKey } from '@/server/services/program-service';
 import { PROGRAM_KEYS } from '@/server/domain/program';
 import { closeTestDb, resetDatabase } from '../helpers/db';
@@ -96,6 +96,36 @@ describe('reporting', () => {
   it('refuses a description too short to act on', async () => {
     const scope = await scopeOf(mentorId, 'mentor');
     await expect(reportIssue(scope, { groupId, body: 'kötü' }, actor)).rejects.toSatisfy(isAppError);
+  });
+
+  it('lets a student in the group raise one about their own group', async () => {
+    const studentId = (
+      await createUser({
+        username: 'ogrenci.a',
+        fullName: 'ogrenci.a',
+        role: 'student',
+        chapterId,
+        academicYearId,
+        actor,
+      })
+    ).userId;
+    await addGroupMember({ groupId, userId: studentId, role: 'student', actor });
+
+    const issue = await reportIssue(
+      await scopeOf(studentId, 'student'),
+      { groupId, body: 'Grupta kimse toplantılara katılmıyor, ne yapacağımı bilmiyorum.' },
+      actor,
+    );
+    expect(issue.level).toBe('mentor');
+  });
+
+  it('refuses a mentor reporting about a group that is not theirs', async () => {
+    // The form binds the groupId, but a server action can be called with any
+    // id at all — the service is the only thing standing in the way.
+    const scope = await scopeOf(otherMentorId, 'mentor');
+    await expect(
+      reportIssue(scope, { groupId, body: 'Başka birinin grubu hakkında kayıt açmaya çalışıyorum.' }, actor),
+    ).rejects.toSatisfy(isAppError);
   });
 });
 

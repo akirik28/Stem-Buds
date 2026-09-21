@@ -77,6 +77,12 @@ export default async function PanelHomePage() {
         </Link>
       ) : null}
 
+      {isStudent(scope.role) ? await StudentSection(scope, academicYear?.id ?? null) : null}
+      {isMentor(scope.role) ? await MentorSection(scope, academicYear?.id ?? null) : null}
+      {isChapterHead(scope.role) || isExecutive(scope.role) ? await ManagementSection(scope) : null}
+      {isAdvisorTeacher(scope.role) ? await AdvisorSection(scope, academicYear?.id ?? null) : null}
+      {isParent(scope.role) ? await ParentSection(scope) : null}
+
       {tasks.length > 0 ? (
         <Card>
           <CardHeader>
@@ -94,12 +100,6 @@ export default async function PanelHomePage() {
           ) : null}
         </Card>
       ) : null}
-
-      {isStudent(scope.role) ? await StudentSection(scope, academicYear?.id ?? null) : null}
-      {isMentor(scope.role) ? await MentorSection(scope, academicYear?.id ?? null) : null}
-      {isChapterHead(scope.role) || isExecutive(scope.role) ? await ManagementSection(scope) : null}
-      {isAdvisorTeacher(scope.role) ? await AdvisorSection(scope, academicYear?.id ?? null) : null}
-      {isParent(scope.role) ? await ParentSection(scope) : null}
     </div>
   );
 }

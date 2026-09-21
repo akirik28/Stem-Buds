@@ -3,8 +3,10 @@ import { getDb } from '@/server/db';
 import { groupIssues, groups } from '@/server/db/schema';
 import { validationError } from '@/server/errors';
 import {
+  canViewGroup,
   isChapterHead,
   isMentor,
+  isParent,
   isRegionalDirector,
   isVicePresident,
   type AccessScope,
@@ -81,9 +83,14 @@ export async function reportIssue(
     .limit(1);
   if (!group) throw validationError('Grup bulunamadı.');
 
-  const canReport =
-    isMentor(scope.role) || isChapterHead(scope.role) || isVicePresident(scope.role) || isRegionalDirector(scope.role);
-  if (!canReport) throw validationError('Bu işlem için yetkiniz yok.');
+  // Whoever can open the group's page may report a problem about it, with the
+  // single exception of a Veli — the chain is internal, and a parent's route
+  // is their mentor, not this. `canViewGroup` is what proves the reporter is
+  // actually attached to this group: the form passes a groupId, and a server
+  // action can be called with any groupId at all.
+  if (isParent(scope.role) || !canViewGroup(scope, group.id, group.chapterId)) {
+    throw validationError('Bu işlem için yetkiniz yok.');
+  }
 
   const [created] = await getDb()
     .insert(groupIssues)
