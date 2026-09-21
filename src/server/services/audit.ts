@@ -17,6 +17,9 @@ import { academicYears, auditLogs, chapters } from '@/server/db/schema';
 export type AuditWriter = Pick<Database, 'insert'>;
 
 export const AUDIT_ACTIONS = {
+  issueReported: 'issue.reported',
+  issueEscalated: 'issue.escalated',
+  issueResolved: 'issue.resolved',
   userCreated: 'user.created',
   userUpdated: 'user.updated',
   userDeactivated: 'user.deactivated',

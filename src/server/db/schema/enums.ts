@@ -198,3 +198,20 @@ export const meetingRequestStatusEnum = pgEnum('meeting_request_status', [
   'pending',
   'declined',
 ]);
+
+/**
+ * How far up a reported group issue has travelled.
+ *
+ * The order is the escalation chain itself: a problem starts with the Mentor
+ * who lives with the group, and only moves when that level cannot resolve it.
+ * `executive` is deliberately last and deliberately hard to reach — see
+ * `issue-service` for why time alone never delivers one there.
+ */
+export const issueLevelEnum = pgEnum('issue_level', [
+  'mentor',
+  'chapter_head',
+  'vice_president',
+  'executive',
+]);
+
+export const issueStatusEnum = pgEnum('issue_status', ['open', 'resolved']);

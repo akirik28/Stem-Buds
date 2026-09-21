@@ -7,6 +7,7 @@ const emailSummary = { processed: 5 };
 function fakeDeps(overrides: Partial<RunJobsDeps> = {}): RunJobsDeps {
   return {
     runAlertEvaluation: vi.fn().mockResolvedValue(alertsSummary),
+    escalateStaleIssues: vi.fn().mockResolvedValue({ escalated: 0 }),
     mirrorRecentNotificationsToEmail: vi.fn().mockResolvedValue(emailSummary),
     closeDb: vi.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -27,7 +28,7 @@ describe('shouldRefuseSmtp', () => {
 
 describe('formatJobsSummary', () => {
   it('contains only the numeric totals — never recipient, message, or credential content', () => {
-    const text = formatJobsSummary({ alertsCreated: 1, alertsUpdated: 2, alertsResolved: 3, alertsFailed: 0, emailsProcessed: 5 });
+    const text = formatJobsSummary({ alertsCreated: 1, alertsUpdated: 2, alertsResolved: 3, alertsFailed: 0, emailsProcessed: 5, issuesEscalated: 2 });
     expect(text).toContain('1');
     expect(text).toContain('5');
     // No email-shaped, token-shaped, or secret-labelled content ever appears in a log line.
@@ -60,6 +61,7 @@ describe('runJobs', () => {
       alertsResolved: 0,
       alertsFailed: 0,
       emailsProcessed: 5,
+      issuesEscalated: 0,
     });
   });
 

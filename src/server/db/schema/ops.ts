@@ -24,6 +24,8 @@ import {
   alertStatusEnum,
   alertTabEnum,
   emailStatusEnum,
+  issueLevelEnum,
+  issueStatusEnum,
 } from './enums';
 
 /** Program-wide "Bu hafta çalışma yok / tatil" entries, scoped per program. */
@@ -279,3 +281,45 @@ export const aiInsightsRelations = relations(aiInsights, ({ one }) => ({
   program: one(programs, { fields: [aiInsights.programId], references: [programs.id] }),
   generatedBy: one(users, { fields: [aiInsights.generatedByUserId], references: [users.id] }),
 }));
+
+/**
+ * A problem someone reported about a group, in their own words.
+ *
+ * Deliberately one free-text column rather than a form: the person reporting
+ * knows what is wrong, and asking them to classify it first is work that
+ * produces worse data than a sentence does. Everything the platform needs to
+ * route it — which group, which chapter — it already knows.
+ *
+ * `level` is where the issue currently sits, and the only thing that moves
+ * it. History of the moves lives in the audit log, not here.
+ */
+export const groupIssues = pgTable(
+  'group_issues',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    chapterId: uuid('chapter_id')
+      .notNull()
+      .references(() => chapters.id, { onDelete: 'cascade' }),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+
+    reportedById: uuid('reported_by_id').references(() => users.id, { onDelete: 'set null' }),
+    /** What is wrong, as written. Never parsed, never classified. */
+    body: text('body').notNull(),
+
+    level: issueLevelEnum('level').notNull().default('mentor'),
+    status: issueStatusEnum('status').notNull().default('open'),
+
+    /** When the issue last moved up — the clock the auto-escalation reads. */
+    levelSince: timestamp('level_since', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    resolutionNote: text('resolution_note'),
+  },
+  (table) => [
+    index('group_issues_open_level_idx').on(table.status, table.level),
+    index('group_issues_group_idx').on(table.groupId),
+  ],
+);

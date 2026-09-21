@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { runJobs } from '../../scripts/run-jobs';
 import { runAlertEvaluation } from '@/server/services/alert-engine';
+import { escalateStaleIssues } from '../../src/server/services/issue-service';
 import { mirrorRecentNotificationsToEmail } from '@/server/services/notification-service';
 import { MockEmailProvider } from '@/server/email/mock-provider';
 import { closeTestDb, resetDatabase } from '../helpers/db';
@@ -32,6 +33,7 @@ describe('runJobs, end to end against the real services', () => {
     const mockProvider = new MockEmailProvider();
     const result = await runJobs({
       runAlertEvaluation,
+      escalateStaleIssues,
       mirrorRecentNotificationsToEmail,
       closeDb: async () => undefined,
       emailProvider: mockProvider,

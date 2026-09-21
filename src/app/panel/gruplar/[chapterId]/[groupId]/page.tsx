@@ -23,6 +23,7 @@ import { getMentorCardState } from './mentor-card-state';
 import { GenerateSessionsButton } from './oturumlar/generate-sessions-button';
 import { MemberRow } from './member-row';
 import { GroupLifecycleControls } from './group-lifecycle-controls';
+import { IssueBox } from './issue-box';
 
 export const metadata: Metadata = {
   title: 'Grup Üyeleri',
@@ -164,6 +165,13 @@ export default async function GroupDetailPage({
           </ul>
         )}
       </Card>
+
+      {canSeeGroupMemberNames(context.scope) ? (
+        <Card>
+          <CardTitle>Bir sorun mu var?</CardTitle>
+          <IssueBox groupId={group.id} />
+        </Card>
+      ) : null}
 
       <Card>
         <CardTitle>Üyeler ({members.length})</CardTitle>

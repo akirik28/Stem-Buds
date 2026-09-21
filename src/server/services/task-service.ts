@@ -1,6 +1,7 @@
 import { isMentor } from '@/server/authz/policy';
 import type { AccessScope } from '@/server/authz/policy';
 import { listAlertsForMentor, listAlertsForViewer, type ManagementAlert } from './alert-query';
+import { daysAtLevel, listIssuesForViewer, type GroupIssue } from './issue-service';
 
 /**
  * "Yapılacaklar": the open alerts, restated as a short ordered list of things
@@ -18,6 +19,9 @@ import { listAlertsForMentor, listAlertsForViewer, type ManagementAlert } from '
 
 export type Task = {
   id: string;
+  /** A reported problem behaves differently from a detected one: it can be
+      handed upward or closed, so the list needs to tell them apart. */
+  kind: 'alert' | 'issue';
   /** What to do, in the imperative — never a restatement of the symptom. */
   title: string;
   /** The evidence behind it, straight from the alert. */
@@ -62,6 +66,24 @@ function toTask(alert: ManagementAlert): Task {
     detail: alert.detail,
     severity: alert.severity,
     href: alertLink(alert),
+    kind: 'alert',
+  };
+}
+
+/**
+ * A reported issue outranks a detected one at the same urgency: a person
+ * went out of their way to write it, and it is sitting on this desk waiting
+ * for an answer. The longer it has sat, the louder it gets.
+ */
+function issueToTask(issue: GroupIssue): Task {
+  const days = daysAtLevel(issue);
+  return {
+    id: issue.id,
+    kind: 'issue',
+    title: 'Bildirilen sorun — sende',
+    detail: issue.body,
+    severity: days >= 5 ? 'red' : 'yellow',
+    href: `/panel/gruplar/${issue.chapterId}/${issue.groupId}`,
   };
 }
 
@@ -71,11 +93,15 @@ function toTask(alert: ManagementAlert): Task {
  * the underlying query's, never this function's.
  */
 export async function listTasksForViewer(scope: AccessScope): Promise<Task[]> {
-  const alerts = isMentor(scope.role)
-    ? await listAlertsForMentor(scope)
-    : await listAlertsForViewer(scope);
+  const [alerts, issues] = await Promise.all([
+    isMentor(scope.role) ? listAlertsForMentor(scope) : listAlertsForViewer(scope),
+    listIssuesForViewer(scope),
+  ]);
 
-  return alerts
-    .map(toTask)
-    .sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 3) - (SEVERITY_ORDER[b.severity] ?? 3));
+  return [...issues.map(issueToTask), ...alerts.map(toTask)].sort((a, b) => {
+    const bySeverity = (SEVERITY_ORDER[a.severity] ?? 3) - (SEVERITY_ORDER[b.severity] ?? 3);
+    if (bySeverity !== 0) return bySeverity;
+    // A person waiting beats a threshold crossing.
+    return (a.kind === 'issue' ? 0 : 1) - (b.kind === 'issue' ? 0 : 1);
+  });
 }

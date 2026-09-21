@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Task } from '@/server/services/task-service';
+import { IssueControls } from './issue-controls';
 
 /**
  * The ordered list of things to do, worked from the top.
@@ -40,6 +41,7 @@ export function TaskList({ tasks }: { tasks: readonly Task[] }) {
               <p className="font-medium text-ink">{task.title}</p>
             </div>
             <p className="mt-0.5 text-sm text-ink-2">{task.detail}</p>
+            {task.kind === 'issue' ? <IssueControls issueId={task.id} /> : null}
           </div>
           {task.href ? (
             <Link

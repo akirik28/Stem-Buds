@@ -5,6 +5,7 @@ import { closeDb } from '../src/server/db';
 import { getEnv } from '../src/server/env';
 import { runAlertEvaluation } from '../src/server/services/alert-engine';
 import { mirrorRecentNotificationsToEmail } from '../src/server/services/notification-service';
+import { escalateStaleIssues } from '../src/server/services/issue-service';
 import type { EmailProvider } from '../src/server/email/provider';
 
 /**
@@ -20,17 +21,19 @@ export type RunJobsResult = {
   alertsResolved: number;
   alertsFailed: number;
   emailsProcessed: number;
+  issuesEscalated: number;
 };
 
 export type RunJobsDeps = {
   runAlertEvaluation: typeof runAlertEvaluation;
+  escalateStaleIssues: typeof escalateStaleIssues;
   mirrorRecentNotificationsToEmail: typeof mirrorRecentNotificationsToEmail;
   closeDb: typeof closeDb;
   /** Test-only override. Production never passes this — the default provider resolves from `EMAIL_TRANSPORT` at send time. */
   emailProvider?: EmailProvider;
 };
 
-const defaultDeps: RunJobsDeps = { runAlertEvaluation, mirrorRecentNotificationsToEmail, closeDb };
+const defaultDeps: RunJobsDeps = { runAlertEvaluation, escalateStaleIssues, mirrorRecentNotificationsToEmail, closeDb };
 
 /**
  * Pure decision, independent of the real process environment, so both
@@ -47,7 +50,8 @@ export function formatJobsSummary(result: RunJobsResult): string {
   return (
     `Alerts — created: ${result.alertsCreated}, updated: ${result.alertsUpdated}, ` +
     `resolved: ${result.alertsResolved}, failed: ${result.alertsFailed}. ` +
-    `Notifications mirrored to e-mail: ${result.emailsProcessed}.`
+    `Notifications mirrored to e-mail: ${result.emailsProcessed}. ` +
+    `Issues escalated by timer: ${result.issuesEscalated}.`
   );
 }
 
@@ -59,6 +63,9 @@ export function formatJobsSummary(result: RunJobsResult): string {
 export async function runJobs(deps: RunJobsDeps = defaultDeps): Promise<RunJobsResult> {
   try {
     const alerts = await deps.runAlertEvaluation({ force: true });
+    // Before the e-mail sweep, so an issue that moved tonight is already at
+    // its new level when the notifications for it go out.
+    const issues = await deps.escalateStaleIssues();
     const email = await deps.mirrorRecentNotificationsToEmail(50, deps.emailProvider);
     return {
       alertsCreated: alerts.created,
@@ -66,6 +73,7 @@ export async function runJobs(deps: RunJobsDeps = defaultDeps): Promise<RunJobsR
       alertsResolved: alerts.resolved,
       alertsFailed: alerts.failures,
       emailsProcessed: email.processed,
+      issuesEscalated: issues.escalated,
     };
   } finally {
     await deps.closeDb();

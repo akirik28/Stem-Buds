@@ -40,6 +40,21 @@ export function isExecutive(role: UserRole): boolean {
   return EXECUTIVE_ROLES.includes(role);
 }
 
+/**
+ * `isExecutive` groups the Vice President with the Regional Director because
+ * they share every permission. The escalation chain is the one place that
+ * needs them apart — a problem stops at the Vice President unless a person
+ * decides it deserves the Regional Director — so these two exist alongside
+ * it rather than replacing it.
+ */
+export function isVicePresident(role: UserRole): boolean {
+  return role === 'vice_president';
+}
+
+export function isRegionalDirector(role: UserRole): boolean {
+  return role === 'regional_director';
+}
+
 export function isChapterHead(role: UserRole): boolean {
   return role === 'chapter_head';
 }
