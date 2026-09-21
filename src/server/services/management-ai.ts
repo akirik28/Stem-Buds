@@ -9,8 +9,8 @@ import {
 import { validationError } from '@/server/errors';
 import { getChapterById } from './chapter-service';
 import { getGroupById } from './group-service';
-import { getGroupSignals } from './group-signals';
-import { listAlertsForMentor, listAlertsForViewer, getManagementKpis } from './alert-query';
+import { getGroupSignals, type GroupSignals } from './group-signals';
+import { listAlertsForMentor, listAlertsForViewer, getManagementKpis, type ManagementKpis } from './alert-query';
 import { getOrGenerateInsight, type InsightOutcome } from '@/server/ai/insight-cache';
 import { isoWeekKey } from '@/server/domain/iso-week';
 import type { AiProvider } from '@/server/ai/provider';
@@ -27,6 +27,52 @@ export type NoAlertsOutcome = { status: 'no_alerts' };
 export type MentorInsightOutcome = InsightOutcome | NoAlertsOutcome;
 
 type Actor = { id: string | null; name: string };
+
+/**
+ * Rates reach the model as a labelled percentage rather than a bare 0–1
+ * float. `attendanceRate: 0.83` reads as either "83% attended" or "83% were
+ * absent" depending only on how the name is skimmed, and a small model gets
+ * it backwards — qwen3:4b inverted exactly this field in three runs out of
+ * three, reporting a healthy 83% turnout as 83% absence. Spelling out both
+ * the unit and the direction costs a few tokens and removes the ambiguity
+ * for every provider.
+ *
+ * `null` is passed through as an explicit "no data" rather than dropped, so
+ * a missing rate cannot be mistaken for a zero.
+ */
+function labelRate(value: number | null, meaning: string) {
+  return value === null
+    ? { percent: null, means: `${meaning} — bu dönem için veri yok` }
+    : { percent: Math.round(value * 100), means: meaning };
+}
+
+function describeKpis(kpis: ManagementKpis) {
+  return {
+    activeChapters: kpis.activeChapters,
+    activeGroups: kpis.activeGroups,
+    attendance: labelRate(kpis.attendanceRate, 'derse katılan öğrenci yüzdesi (yüksek = iyi)'),
+    homeworkCompletion: labelRate(kpis.homeworkCompletionRate, 'ödevini tamamlayan öğrenci yüzdesi (yüksek = iyi)'),
+    weeklyRecordCompletion: labelRate(
+      kpis.weeklyRecordCompletionRate,
+      'mentörün haftalık kaydı doldurma yüzdesi (yüksek = iyi)',
+    ),
+    projectsNeedingAttention: kpis.projectsNeedingAttention,
+    openAlerts: kpis.openAlertCount,
+  };
+}
+
+function describeGroupSignals(signals: GroupSignals) {
+  const { attendanceRate, homeworkRate, daysSinceProjectProgress, ...rest } = signals;
+  return {
+    ...rest,
+    attendance: labelRate(attendanceRate, 'derse katılan öğrenci yüzdesi (yüksek = iyi)'),
+    homework: labelRate(homeworkRate, 'ödevini tamamlayan öğrenci yüzdesi (yüksek = iyi)'),
+    daysSinceProjectProgress:
+      daysSinceProjectProgress === null
+        ? { days: null, means: 'projede hiç ilerleme kaydı yok' }
+        : { days: daysSinceProjectProgress, means: 'son proje ilerlemesinden bu yana geçen gün (yüksek = kötü)' },
+  };
+}
 
 // ---------------------------------------------------------------------------
 // 6.1 "Haftalık Özet" — REGIONAL_DIRECTOR + VICE_DIRECTOR
@@ -48,7 +94,7 @@ export async function getWeeklySummaryInsight(
   const facts = {
     period,
     program: programId ?? 'ALL',
-    kpis,
+    kpis: describeKpis(kpis),
     activeAlertCounts: alertCounts,
     topAttentionGroups: alerts.slice(0, 10).map((a) => ({ category: a.category, severity: a.severity, title: a.title })),
   };
@@ -92,7 +138,7 @@ export async function getChapterGroupStatusInsight(
   const groupSignals = await Promise.all(chapterGroups.map((g) => getGroupSignals(g.id, activeYear.id)));
 
   const period = isoWeekKey(new Date());
-  const facts = { period, chapterRef: chapter.name, groups: groupSignals };
+  const facts = { period, chapterRef: chapter.name, groups: groupSignals.map(describeGroupSignals) };
 
   return getOrGenerateInsight({
     insightType: 'chapter_group_status',
@@ -135,7 +181,7 @@ export async function getDataQuestionInsight(
     // instruction — see AI_SYSTEM_PROMPT / buildUserPrompt.
     question: trimmed,
     program: programId ?? 'ALL',
-    kpis,
+    kpis: describeKpis(kpis),
     activeAlerts: alerts.slice(0, 30).map((a) => ({
       category: a.category,
       severity: a.severity,
@@ -224,7 +270,7 @@ export async function getAdvisorGroupSummaryInsight(
   }
 
   const signals = await getGroupSignals(groupId, group.academicYearId);
-  const facts = { group: signals };
+  const facts = { group: describeGroupSignals(signals) };
 
   return getOrGenerateInsight({
     insightType: 'advisor_group_summary',
