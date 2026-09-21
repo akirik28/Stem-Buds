@@ -2,9 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "stem-buds-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "name": "stem-buds-local",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "DATABASE_URL=postgres://localhost:5432/stembuds_dev npm run dev"
+      ],
       "port": 3000
     }
   ]

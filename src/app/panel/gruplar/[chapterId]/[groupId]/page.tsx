@@ -2,7 +2,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { requireAuthContext } from '@/server/auth/context';
-import { canFinalizeWeeklyRecord, canManageChapter, canViewGroup, isMentor } from '@/server/authz/policy';
+import {
+  canFinalizeWeeklyRecord,
+  canManageChapter,
+  canSeeGroupMemberNames,
+  canViewGroup,
+  isMentor,
+} from '@/server/authz/policy';
 import { getChapterById, listChapterMembers } from '@/server/services/chapter-service';
 import { getGroupById, listGroupMembers } from '@/server/services/group-service';
 import { getMentorAggregateFeedback } from '@/server/services/feedback-service';
@@ -161,7 +167,16 @@ export default async function GroupDetailPage({
 
       <Card>
         <CardTitle>Üyeler ({members.length})</CardTitle>
-        {members.length === 0 ? (
+        {!canSeeGroupMemberNames(context.scope) ? (
+          // A Veli reaches this page for their own child's group, but the
+          // other people in it are other families' children. They get the
+          // size of the group and nothing that identifies anyone — the same
+          // rule `getChildOverview` follows when it returns a count instead
+          // of a roster.
+          <p className="mt-2 text-sm text-ink-2">
+            Bu grupta {members.length} kişi var. Diğer ailelerin çocuklarının bilgileri paylaşılmaz.
+          </p>
+        ) : members.length === 0 ? (
           <EmptyState title="Bu grupta henüz üye yok." />
         ) : (
           <div className="mt-3 divide-y divide-line-soft">
