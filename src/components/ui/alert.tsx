@@ -4,10 +4,10 @@ import { cn } from '@/lib/utils';
 export type AlertTone = 'error' | 'success' | 'info' | 'warning';
 
 const toneClasses: Record<AlertTone, string> = {
-  error: 'bg-danger-soft text-red-900 ring-red-200',
+  error: 'bg-danger-soft text-danger ring-danger-line',
   success: 'bg-ok-soft text-ok ring-ok-line',
   info: 'bg-surface-2 text-ink ring-line',
-  warning: 'bg-amber-50 text-amber-900 ring-amber-200',
+  warning: 'bg-warn-soft text-warn ring-warn-line',
 };
 
 const tonePrefix: Record<AlertTone, string> = {

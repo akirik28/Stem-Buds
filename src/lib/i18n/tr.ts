@@ -101,12 +101,6 @@ export const alertCategoryLabels = {
   chapter_meeting_overdue: 'Chapter toplantısı gecikti',
 } as const;
 
-export const alertTabLabels = {
-  weekly: 'Haftalık Takip',
-  project: 'Proje & Grup Sağlığı',
-  feedback: 'Geri Bildirim & Şikâyetler',
-} as const;
-
 export const complaintStatusLabels = {
   new: 'Yeni',
   investigating: 'İnceleniyor',

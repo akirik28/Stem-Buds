@@ -218,7 +218,7 @@ async function ProjectContent({
                 </p>
                 <p className="text-sm text-ink">{entry.label}</p>
                 {entry.type === 'session' && entry.problem ? (
-                  <p className="mt-1 text-sm text-amber-700">🚧 {entry.problem}</p>
+                  <p className="mt-1 text-sm text-warn">🚧 {entry.problem}</p>
                 ) : null}
                 {entry.type === 'session' && entry.nextStep ? (
                   <p className="mt-1 text-sm text-ink-3">Sıradaki adım: {entry.nextStep}</p>

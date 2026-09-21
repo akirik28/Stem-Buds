@@ -13,7 +13,7 @@ import { listPrograms } from '@/server/services/program-service';
 import { Card, CardTitle, EmptyState } from '@/components/ui/card';
 import { ALL_PROGRAMS_LABEL } from '@/server/domain/program';
 import { formatPercent } from '@/lib/format';
-import { alertTabLabels, messages } from '@/lib/i18n/tr';
+import { messages } from '@/lib/i18n/tr';
 import { AlertCard } from './alert-card';
 import { AiInsightSurface } from './ai-insight-surface';
 import { ComplaintCard } from './complaint-card';
@@ -31,13 +31,12 @@ const UNAVAILABLE_MESSAGE = 'AI özeti şu anda oluşturulamadı. Mevcut veriler
 export default async function ManagementFeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ program?: string; tab?: string }>;
+  searchParams: Promise<{ program?: string }>;
 }) {
   const context = await requireAuthContext();
   if (!canViewManagementFeed(context.scope)) redirect('/panel');
 
-  const { program: programFilter, tab: tabParam } = await searchParams;
-  const tab: 'weekly' | 'project' | 'feedback' = tabParam === 'project' || tabParam === 'feedback' ? tabParam : 'weekly';
+  const { program: programFilter } = await searchParams;
 
   // Cheap, throttled: a no-op most of the time, a real (idempotent) sweep
   // at most once every 5 minutes.
@@ -48,37 +47,33 @@ export default async function ManagementFeedPage({
     isExecutive(context.scope.role) ? listPrograms() : Promise.resolve([]),
   ]);
 
-  const alerts =
-    tab === 'feedback'
-      ? []
-      : await listAlertsForViewer(context.scope, { programId: programFilter, tab });
+  // No tab filter: every card already carries its own category pill, so
+  // splitting the same list across three tabs only asked the reader to
+  // choose before they could look.
+  const alerts = await listAlertsForViewer(context.scope, { programId: programFilter });
 
-  let complaints: Awaited<ReturnType<typeof listComplaintsForViewer>> = [];
-  let complaintReporterLabels = new Map<string, string | null>();
-  let feedbackItems: Awaited<ReturnType<typeof listContinuousFeedbackForViewer>> = [];
-  let feedbackReporterLabels = new Map<string, string | null>();
-  if (tab === 'feedback') {
-    [complaints, feedbackItems] = await Promise.all([
-      listComplaintsForViewer(context.scope, { programId: programFilter }),
-      listContinuousFeedbackForViewer(context.scope, { programId: programFilter }),
-    ]);
+  const [complaints, feedbackItems] = await Promise.all([
+    listComplaintsForViewer(context.scope, { programId: programFilter }),
+    listContinuousFeedbackForViewer(context.scope, { programId: programFilter }),
+  ]);
 
-    const complaintReporterIds = [
-      ...new Set(
-        complaints
-          .filter((c) => c.reporterUserId && canSeeComplaintReporter(context.scope, c))
-          .map((c) => c.reporterUserId as string),
-      ),
-    ];
-    const feedbackReporterIds = [...new Set(feedbackItems.filter((f) => f.reporterUserId).map((f) => f.reporterUserId as string))];
+  // A reporter's name is only resolved where this viewer is allowed to see
+  // it; everyone else gets an anonymous card.
+  const complaintReporterIds = [
+    ...new Set(
+      complaints
+        .filter((c) => c.reporterUserId && canSeeComplaintReporter(context.scope, c))
+        .map((c) => c.reporterUserId as string),
+    ),
+  ];
+  const feedbackReporterIds = [...new Set(feedbackItems.filter((f) => f.reporterUserId).map((f) => f.reporterUserId as string))];
 
-    const [complaintReporters, feedbackReporters] = await Promise.all([
-      Promise.all(complaintReporterIds.map((id) => getUserById(id))),
-      Promise.all(feedbackReporterIds.map((id) => getUserById(id))),
-    ]);
-    complaintReporterLabels = new Map(complaintReporterIds.map((id, i) => [id, complaintReporters[i]?.fullName ?? null]));
-    feedbackReporterLabels = new Map(feedbackReporterIds.map((id, i) => [id, feedbackReporters[i]?.fullName ?? null]));
-  }
+  const [complaintReporters, feedbackReporters] = await Promise.all([
+    Promise.all(complaintReporterIds.map((id) => getUserById(id))),
+    Promise.all(feedbackReporterIds.map((id) => getUserById(id))),
+  ]);
+  const complaintReporterLabels = new Map(complaintReporterIds.map((id, i) => [id, complaintReporters[i]?.fullName ?? null]));
+  const feedbackReporterLabels = new Map(feedbackReporterIds.map((id, i) => [id, feedbackReporters[i]?.fullName ?? null]));
 
   const singleChapterId = isChapterHead(context.scope.role) ? context.scope.headChapterIds[0] : undefined;
 
@@ -126,13 +121,13 @@ export default async function ManagementFeedPage({
 
       {isExecutive(context.scope.role) ? (
         <nav aria-label="Program filtresi" className="flex flex-wrap gap-2">
-          <ProgramFilterLink label={ALL_PROGRAMS_LABEL} active={!programFilter} href={`/panel/yonetim-akisi?tab=${tab}`} />
+          <ProgramFilterLink label={ALL_PROGRAMS_LABEL} active={!programFilter} href="/panel/yonetim-akisi" />
           {programs.map((program) => (
             <ProgramFilterLink
               key={program.id}
               label={program.shortName}
               active={programFilter === program.id}
-              href={`/panel/yonetim-akisi?tab=${tab}&program=${program.id}`}
+              href={`/panel/yonetim-akisi?program=${program.id}`}
             />
           ))}
         </nav>
@@ -173,64 +168,47 @@ export default async function ManagementFeedPage({
         </Card>
       ) : null}
 
-      <nav aria-label="Sekmeler" className="flex flex-wrap gap-2 border-b border-line-soft">
-        {(['weekly', 'project', 'feedback'] as const).map((t) => (
-          <Link
-            key={t}
-            href={`/panel/yonetim-akisi?tab=${t}${programFilter ? `&program=${programFilter}` : ''}`}
-            className={
-              tab === t
-                ? 'border-b-2 border-line px-3 py-2 text-sm font-medium text-ink'
-                : 'px-3 py-2 text-sm text-ink-3 hover:text-ink-2'
-            }
-          >
-            {alertTabLabels[t]}
-          </Link>
-        ))}
-      </nav>
-
-      {tab === 'feedback' ? (
-        <div className="space-y-6">
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-3">Şikâyetler</h2>
-            {complaints.length === 0 ? (
-              <EmptyState title={messages.empty.noComplaints} />
-            ) : (
-              complaints.map((complaint) => (
-                <ComplaintCard
-                  key={complaint.id}
-                  complaint={complaint}
-                  reporterLabel={complaint.reporterUserId ? (complaintReporterLabels.get(complaint.reporterUserId) ?? null) : null}
-                  canManage={isExecutive(context.scope.role) || (isChapterHead(context.scope.role) && context.scope.headChapterIds.includes(complaint.chapterId))}
-                />
-              ))
-            )}
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-3">Geri Bildirimler</h2>
-            {feedbackItems.length === 0 ? (
-              <EmptyState title={messages.empty.noFeedback} />
-            ) : (
-              feedbackItems.map((item) => (
-                <FeedbackCard
-                  key={item.id}
-                  feedback={item}
-                  reporterLabel={item.reporterUserId ? (feedbackReporterLabels.get(item.reporterUserId) ?? null) : null}
-                />
-              ))
-            )}
-          </section>
-        </div>
-      ) : alerts.length === 0 ? (
-        <EmptyState title="Şu anda dikkat gerektiren bir konu bulunmuyor." />
-      ) : (
-        <div className="space-y-3">
-          {alerts.map((alert) => (
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-3">Uyarılar</h2>
+        {alerts.length === 0 ? (
+          <EmptyState title="Şu anda dikkat gerektiren bir konu bulunmuyor." />
+        ) : (
+          alerts.map((alert) => (
             <AlertCard key={alert.id} alert={alert} linkHref={buildAlertLink(alert)} canManage={canManageAlertWorkflow(context.scope, alert)} />
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-3">Şikâyetler</h2>
+        {complaints.length === 0 ? (
+          <EmptyState title={messages.empty.noComplaints} />
+        ) : (
+          complaints.map((complaint) => (
+            <ComplaintCard
+              key={complaint.id}
+              complaint={complaint}
+              reporterLabel={complaint.reporterUserId ? (complaintReporterLabels.get(complaint.reporterUserId) ?? null) : null}
+              canManage={isExecutive(context.scope.role) || (isChapterHead(context.scope.role) && context.scope.headChapterIds.includes(complaint.chapterId))}
+            />
+          ))
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-3">Geri Bildirimler</h2>
+        {feedbackItems.length === 0 ? (
+          <EmptyState title={messages.empty.noFeedback} />
+        ) : (
+          feedbackItems.map((item) => (
+            <FeedbackCard
+              key={item.id}
+              feedback={item}
+              reporterLabel={item.reporterUserId ? (feedbackReporterLabels.get(item.reporterUserId) ?? null) : null}
+            />
+          ))
+        )}
+      </section>
     </div>
   );
 }

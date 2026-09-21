@@ -61,6 +61,7 @@ export function buildNavigation(scope: AccessScope, badges: NavBadges = {}): Nav
 
   const daily: NavItem[] = [
     { href: '/panel', label: 'Panelim' },
+    { href: '/panel/yapilacaklar', label: 'Yapılacaklar' },
     { href: '/panel/bildirimler', label: 'Bildirimler', badge: badges.notifications },
   ];
 

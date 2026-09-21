@@ -13,8 +13,9 @@ export function AiInsightCard({ insight }: { insight: AiManagementInsight }) {
       {insight.positives.length > 0 ? (
         <ul className="space-y-1">
           {insight.positives.map((item, i) => (
-            <li key={i} className="text-ok">
-              ✅ {item}
+            <li key={i} className="flex gap-2 text-ok">
+              <span aria-hidden="true">✓</span>
+              <span>{item}</span>
             </li>
           ))}
         </ul>
@@ -23,9 +24,18 @@ export function AiInsightCard({ insight }: { insight: AiManagementInsight }) {
       {insight.attentionItems.length > 0 ? (
         <ul className="space-y-2">
           {insight.attentionItems.map((item, i) => (
-            <li key={i} className="rounded-lg bg-amber-50 px-3 py-2">
-              <p className="font-medium text-ink">⚠️ {item.title}</p>
-              <p className="text-ink-2">{item.evidence}</p>
+            // `bg-warn-soft` rather than a hard-coded amber: the soft tokens
+            // are the ones paired with `--ink` per theme, so the title stays
+            // readable. A literal `bg-amber-50` put near-white text on cream.
+            <li
+              key={i}
+              className="rounded-[var(--radius-row)] bg-warn-soft px-3 py-2 ring-1 ring-inset ring-warn-line"
+            >
+              <p className="flex gap-2 font-medium text-ink">
+                <span aria-hidden="true">!</span>
+                <span>{item.title}</span>
+              </p>
+              <p className="mt-0.5 text-ink-2">{item.evidence}</p>
             </li>
           ))}
         </ul>

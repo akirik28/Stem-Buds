@@ -13,7 +13,9 @@ import { listAlertsForMentor, getManagementKpis } from '@/server/services/alert-
 import { listComplaintsForViewer } from '@/server/services/complaint-service';
 import { listContinuousFeedbackForViewer } from '@/server/services/feedback-service';
 import { listChannelsForViewer } from '@/server/services/messaging-service';
-import { Card, CardTitle, EmptyState, MetricGrid, MetricTile } from '@/components/ui/card';
+import { listTasksForViewer } from '@/server/services/task-service';
+import { TaskList } from '@/components/ui/task-list';
+import { Card, CardHeader, CardTitle, EmptyState, MetricGrid, MetricTile } from '@/components/ui/card';
 import { StatusPill, projectHealthTones } from '@/components/ui/status';
 import { projectHealthLabels, projectHealthIcons, roleDescriptions, roleLabels } from '@/lib/i18n/tr';
 import { formatPercent } from '@/lib/format';
@@ -38,6 +40,12 @@ export default async function PanelHomePage() {
   const unreadTotal = isAdvisorTeacher(scope.role) || isParent(scope.role)
     ? null
     : (await listChannelsForViewer(scope)).reduce((sum, c) => sum + c.unreadCount, 0);
+
+  // Only the first few: this card is the nudge, the page behind it is the
+  // list. Showing all of them here would recreate the wall of cards the
+  // to-do list exists to replace.
+  const tasks = isParent(scope.role) ? [] : await listTasksForViewer(scope);
+  const PREVIEW = 4;
 
   return (
     <div className="flex flex-col gap-5">
@@ -67,6 +75,24 @@ export default async function PanelHomePage() {
             hint="Mesajlara git →"
           />
         </Link>
+      ) : null}
+
+      {tasks.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Yapılacaklar</CardTitle>
+            <span className="text-[13px] text-ink-3">{tasks.length} madde</span>
+          </CardHeader>
+          <TaskList tasks={tasks.slice(0, PREVIEW)} />
+          {tasks.length > PREVIEW ? (
+            <Link
+              href="/panel/yapilacaklar"
+              className="mt-3.5 inline-block text-sm font-medium text-ink hover:underline"
+            >
+              Tümünü gör ({tasks.length}) →
+            </Link>
+          ) : null}
+        </Card>
       ) : null}
 
       {isStudent(scope.role) ? await StudentSection(scope, academicYear?.id ?? null) : null}

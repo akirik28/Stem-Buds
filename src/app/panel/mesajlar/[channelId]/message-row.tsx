@@ -39,7 +39,7 @@ export function MessageRow({
   }
 
   return (
-    <div className={`rounded-lg px-3 py-2 ${message.isAnnouncement ? 'bg-amber-50' : message.isPinned ? 'bg-surface-2' : ''}`}>
+    <div className={`rounded-lg px-3 py-2 ${message.isAnnouncement ? 'bg-warn-soft' : message.isPinned ? 'bg-surface-2' : ''}`}>
       <div className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
         <span className="font-medium text-ink-2">{message.authorName ?? 'Sistem'}</span>
         {message.isOversightAuthor ? <StatusPill tone="neutral">Gözlemci</StatusPill> : null}
