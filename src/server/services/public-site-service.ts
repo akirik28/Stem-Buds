@@ -1,6 +1,16 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, countDistinct, desc, eq } from 'drizzle-orm';
 import { getDb } from '@/server/db';
-import { contactMessages, publicHighlights, publicLeadershipProfiles, publicMedia, publicNewsPosts } from '@/server/db/schema';
+import {
+  academicYears,
+  chapters,
+  contactMessages,
+  groupMemberships,
+  groups,
+  publicHighlights,
+  publicLeadershipProfiles,
+  publicMedia,
+  publicNewsPosts,
+} from '@/server/db/schema';
 import { validationError } from '@/server/errors';
 import { clientIpFromHeaders, consumeRateLimit, hashIp } from './rate-limit';
 import type { ContactReason } from '@/lib/i18n/tr';
@@ -12,6 +22,69 @@ import type { ContactReason } from '@/lib/i18n/tr';
  * render an empty/omitted section rather than a placeholder when a list
  * comes back empty (see each function's own note).
  */
+
+export type PublicStats = {
+  chapters: number;
+  groups: number;
+  students: number;
+  mentors: number;
+};
+
+/**
+ * Headline counts for the homepage, straight from the database rather than
+ * typed into the page. A number on a public site is a claim, so this counts
+ * only what is actually running right now: active chapters, active groups in
+ * the active academic year, and the distinct people holding an active
+ * membership in one of those groups — a student in two groups is one student.
+ *
+ * Returns zeros on an empty database, and the homepage omits the whole band
+ * rather than advertising a programme of nobody.
+ */
+export async function getPublicStats(): Promise<PublicStats> {
+  const db = getDb();
+
+  const [year] = await db
+    .select({ id: academicYears.id })
+    .from(academicYears)
+    .where(eq(academicYears.isActive, true))
+    .limit(1);
+
+  const [chapterRow] = await db
+    .select({ n: countDistinct(chapters.id) })
+    .from(chapters)
+    .where(eq(chapters.isActive, true));
+
+  if (!year) {
+    return { chapters: chapterRow?.n ?? 0, groups: 0, students: 0, mentors: 0 };
+  }
+
+  const [groupRow] = await db
+    .select({ n: countDistinct(groups.id) })
+    .from(groups)
+    .where(and(eq(groups.isActive, true), eq(groups.academicYearId, year.id)));
+
+  const memberCounts = await db
+    .select({ role: groupMemberships.role, n: countDistinct(groupMemberships.userId) })
+    .from(groupMemberships)
+    .innerJoin(groups, eq(groups.id, groupMemberships.groupId))
+    .where(
+      and(
+        eq(groupMemberships.isActive, true),
+        eq(groups.isActive, true),
+        eq(groups.academicYearId, year.id),
+      ),
+    )
+    .groupBy(groupMemberships.role);
+
+  const byRole = (role: string) => memberCounts.find((row) => row.role === role)?.n ?? 0;
+
+  return {
+    chapters: chapterRow?.n ?? 0,
+    groups: groupRow?.n ?? 0,
+    students: byRole('student'),
+    mentors: byRole('mentor'),
+  };
+}
 
 export type PublicHighlight = typeof publicHighlights.$inferSelect;
 export type PublicLeadershipProfile = typeof publicLeadershipProfiles.$inferSelect;

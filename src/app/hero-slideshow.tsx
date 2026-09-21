@@ -16,8 +16,9 @@ import { useEffect, useState } from 'react';
 
 const SLIDES = [
   { src: '/hero/stem-1.jpg', alt: 'Bir deney sırasında erlene renkli sıvı aktaran eller' },
-  { src: '/hero/stem-2.jpg', alt: 'Işığı kıran bir prizmayı tutan el' },
-  { src: '/hero/stem-3.jpg', alt: 'Sarkaç deneyi yapan eller' },
+  { src: '/gallery/g-02.jpg', alt: 'Bir robot üzerinde birlikte çalışan üç öğrenci' },
+  { src: '/gallery/g-04.jpg', alt: 'Mikroskopla inceleme yapan bir öğrenci' },
+  { src: '/gallery/g-13.jpg', alt: 'Dizüstü bilgisayarlarla çalışan öğrenciler' },
 ] as const;
 
 const INTERVAL_MS = 6000;

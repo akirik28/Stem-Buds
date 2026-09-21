@@ -2,8 +2,14 @@ import Link from 'next/link';
 import { SiteHeader } from './site-header';
 import { SiteFooter } from './site-footer';
 import { HeroSlideshow } from './hero-slideshow';
+import { PhotoMosaic } from './photo-mosaic';
+import { PhotoStrip } from './photo-strip';
 import { listPrograms } from '@/server/services/program-service';
-import { listPublicHighlights, listPublicLeadershipProfiles, listPublishedNewsPosts } from '@/server/services/public-site-service';
+import {
+  listPublicHighlights,
+  listPublicLeadershipProfiles,
+  listPublishedNewsPosts,
+} from '@/server/services/public-site-service';
 import { PROGRAM_KEYS } from '@/server/domain/program';
 import { disciplineLabels } from '@/lib/i18n/tr';
 import { formatDateTr } from '@/lib/format';
@@ -37,6 +43,48 @@ const WHY_ITEMS = [
   },
 ] as const;
 
+const AUDIENCES = [
+  {
+    title: 'Öğrenciyim',
+    body: 'Ortaokuldaysan bir lise mentoruyla çalışıp merak ettiğin konuyu gerçek bir projeye dönüştürebilirsin.',
+    cta: 'Programlara bak',
+    href: '#programlar',
+  },
+  {
+    title: 'Veliyim',
+    body: 'Çocuğunuzun katılımını, ilerlemesini ve grubunu takip edebileceğiniz bir veli paneli var.',
+    cta: 'Bize ulaşın',
+    href: '#iletisim',
+  },
+  {
+    title: 'Öğretmenim / Okulum',
+    body: 'Okulunuzda bir chapter açmak veya mevcut bir chapter\u2019a danışman olmak için bizimle iletişime geçin.',
+    cta: 'İletişime geçin',
+    href: '#iletisim',
+  },
+] as const;
+
+/** The decorative bands draw from the whole gallery and only differ in
+    where they open, so the two never show the same row. Replace the files in
+    `public/gallery` with real programme photographs and these keep working. */
+const GALLERY = [
+  '/gallery/g-01.jpg',
+  '/gallery/g-02.jpg',
+  '/gallery/g-03.jpg',
+  '/gallery/g-04.jpg',
+  '/gallery/g-05.jpg',
+  '/gallery/g-06.jpg',
+  '/gallery/g-07.jpg',
+  '/gallery/g-08.jpg',
+  '/gallery/g-09.jpg',
+  '/gallery/g-10.jpg',
+  '/gallery/g-11.jpg',
+  '/gallery/g-12.jpg',
+  '/gallery/g-13.jpg',
+  '/gallery/g-14.jpg',
+  '/hero/stem-1.jpg',
+] as const;
+
 const HOW_IT_WORKS = [
   { step: '1', title: 'Merak / Fikir', body: 'Öğrencinin ilgi duyduğu bir konu ya da soru.' },
   { step: '2', title: 'Mentor Destekli Çalışma', body: 'Bir lise öğrencisi mentorla düzenli, tekrarlayan çalışma oturumları.' },
@@ -51,6 +99,7 @@ export default async function HomePage() {
     listPublicLeadershipProfiles(),
     listPublishedNewsPosts(3),
   ]);
+
   const onlineProgram = programs.find((p) => p.key === PROGRAM_KEYS.onlineMiddleSchool);
   const bilsemProgram = programs.find((p) => p.key === PROGRAM_KEYS.bilsem);
 
@@ -60,7 +109,9 @@ export default async function HomePage() {
 
       {/* Hero */}
       <section className="relative isolate overflow-hidden">
-        <div aria-hidden="true" className="hero-glow" />
+        {/* The photo wall is the hero's backdrop now; the old radial glow
+            underneath it only muddied the tiles. */}
+        <PhotoMosaic />
 
         <div className="container-page relative grid items-center gap-12 py-16 sm:py-24 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]">
           <div>
@@ -105,6 +156,44 @@ export default async function HomePage() {
       </section>
 
       <main id="main" className="flex-1">
+        {/* Who are you? — a visitor should not have to read the whole page to
+            find the one paragraph meant for them. */}
+        <section className="container-page py-16 sm:py-20">
+          <p className="text-center text-[11px] font-bold uppercase tracking-[0.18em] text-ink-3">
+            Nereden başlamak istersiniz?
+          </p>
+          <h2 className="mt-3 text-center font-display text-[28px]/[1.2] font-semibold tracking-[-0.02em] text-ink-on-bg sm:text-[34px]">
+            Öğrenciler tarafından kurulan, öğrenciler tarafından yürütülen bir program.
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-center text-[15px]/[1.75] text-ink-on-bg-2">
+            STEM &amp; BUDS, Üsküdar Amerikan Lisesi öğrencileriyle organik bir bağa sahip; lise
+            öğrencisi mentorlar ortaokul öğrencilerine proje geliştirme sürecinde eşlik eder.
+          </p>
+
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            {AUDIENCES.map((audience) => (
+              <a
+                key={audience.title}
+                href={audience.href}
+                className="group rounded-2xl bg-surface p-6 ring-1 ring-line-soft transition-colors hover:ring-line"
+              >
+                <h3 className="font-display text-[19px] font-semibold tracking-[-0.01em] text-ink">
+                  {audience.title}
+                </h3>
+                <p className="mt-2 text-[14.5px]/[1.7] text-ink-2">{audience.body}</p>
+                <span className="mt-5 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-ok">
+                  {audience.cta}
+                  <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">
+                    →
+                  </span>
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        <PhotoStrip photos={GALLERY} />
+
         {/* What we do */}
         <section className="container-page py-16 sm:py-20">
           <h2 className="text-2xl font-semibold text-ink-on-bg sm:text-3xl">Ne Yapıyoruz</h2>
@@ -183,6 +272,8 @@ export default async function HomePage() {
             </div>
           </div>
         </section>
+
+        <PhotoStrip photos={GALLERY} reverse />
 
         {/* Why STEM & BUDS */}
         <section className="container-page py-16 sm:py-20">

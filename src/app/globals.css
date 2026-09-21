@@ -75,6 +75,17 @@
   }
 }
 
+/* Sideways drift for the photo bands. Half the track is one full copy of
+   the list, so -50% lands the duplicate exactly where the original began. */
+@keyframes strip-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
 /* Loading skeleton pulse. */
 @keyframes sk {
   0% {
@@ -414,6 +425,150 @@
       ),
       radial-gradient(760px 580px at 90% 2%, hsl(212 92% 66% / 0.3), transparent 66%),
       radial-gradient(860px 560px at 44% 114%, hsl(196 92% 68% / 0.2), transparent 64%);
+  }
+
+  /*
+   * The hero's photo wall: stacked rows that drift sideways. Each row is its
+   * own marquee track, so the rows can run at different speeds and in
+   * opposite directions without any of them lining up.
+   */
+  .photo-mosaic {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .photo-mosaic-track {
+    display: flex;
+    gap: 8px;
+    width: max-content;
+    flex: none;
+    animation-name: strip-drift;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+
+  .photo-mosaic-track.is-reverse {
+    animation-direction: reverse;
+  }
+
+  .photo-mosaic-tile {
+    width: 200px;
+    height: 148px;
+    flex: none;
+    object-fit: cover;
+    border-radius: 10px;
+    /* Desaturated and cooled so a wall of competing photographs reads as one
+       texture rather than thirty focal points fighting the headline. */
+    filter: saturate(0.5) brightness(0.78) contrast(0.95);
+    opacity: 0.82;
+  }
+
+  @media (max-width: 640px) {
+    .photo-mosaic-tile {
+      width: 132px;
+      height: 100px;
+    }
+  }
+
+  /*
+   * The readability layer. Weighted to the left, where the headline sits,
+   * and fading out to the right so the wall stays legible as a wall. A short
+   * fade at top and bottom hands off to the sections either side.
+   */
+  .photo-mosaic-veil {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(
+        to right,
+        color-mix(in oklab, var(--bg) 92%, transparent) 0%,
+        color-mix(in oklab, var(--bg) 72%, transparent) 34%,
+        color-mix(in oklab, var(--bg) 34%, transparent) 66%,
+        color-mix(in oklab, var(--bg) 18%, transparent) 100%
+      ),
+      linear-gradient(
+        to bottom,
+        var(--bg) 0%,
+        transparent 16%,
+        transparent 84%,
+        var(--bg) 100%
+      );
+  }
+
+  /* On one column the text sits over the photographs, so the veil goes flat
+     and heavy — a left-to-right gradient would leave the last words
+     unreadable. */
+  @media (max-width: 1023px) {
+    .photo-mosaic-veil {
+      background-image: linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--bg) 70%, transparent) 0%,
+        color-mix(in oklab, var(--bg) 86%, transparent) 30%,
+        var(--bg) 94%
+      );
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .photo-mosaic-track {
+      animation: none;
+    }
+  }
+
+  /*
+   * A band of photographs that drifts sideways between sections. The track
+   * holds the list twice and shifts by exactly half its width, so the second
+   * copy arrives where the first started and the loop has no seam.
+   */
+  .photo-strip {
+    overflow: hidden;
+    /* Fades both ends into the page so tiles arrive and leave rather than
+       being cut off by a hard edge. */
+    mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+  }
+
+  .photo-strip-track {
+    display: flex;
+    gap: 10px;
+    width: max-content;
+    animation-name: strip-drift;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+
+  .photo-strip-track.is-reverse {
+    animation-direction: reverse;
+  }
+
+  .photo-strip:hover .photo-strip-track {
+    animation-play-state: paused;
+  }
+
+  .photo-strip-tile {
+    width: 300px;
+    height: 220px;
+    flex: none;
+    object-fit: cover;
+    border-radius: 14px;
+    filter: saturate(0.72) brightness(0.88);
+  }
+
+  @media (min-width: 768px) {
+    .photo-strip-tile {
+      width: 340px;
+      height: 260px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .photo-strip-track {
+      animation: none;
+    }
   }
 
 
