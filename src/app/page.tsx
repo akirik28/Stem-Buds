@@ -4,12 +4,12 @@ import { SiteFooter } from './site-footer';
 import { HeroSlideshow } from './hero-slideshow';
 import { PhotoMosaic } from './photo-mosaic';
 import { PhotoStrip } from './photo-strip';
-import { listPrograms } from '@/server/services/program-service';
 import {
-  listPublicHighlights,
-  listPublicLeadershipProfiles,
-  listPublishedNewsPosts,
-} from '@/server/services/public-site-service';
+  getCachedHighlights,
+  getCachedLeadership,
+  getCachedNewsPosts,
+  getCachedPrograms,
+} from '@/server/cache/public-content';
 import { PROGRAM_KEYS } from '@/server/domain/program';
 import { disciplineLabels } from '@/lib/i18n/tr';
 import { formatDateTr } from '@/lib/format';
@@ -94,10 +94,10 @@ const HOW_IT_WORKS = [
 
 export default async function HomePage() {
   const [programs, highlights, leadership, news] = await Promise.all([
-    listPrograms(),
-    listPublicHighlights(),
-    listPublicLeadershipProfiles(),
-    listPublishedNewsPosts(3),
+    getCachedPrograms(),
+    getCachedHighlights(),
+    getCachedLeadership(),
+    getCachedNewsPosts(3),
   ]);
 
   const onlineProgram = programs.find((p) => p.key === PROGRAM_KEYS.onlineMiddleSchool);

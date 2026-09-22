@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { BrandLockup } from '@/components/brand/logo';
-import { listPublishedNewsPosts } from '@/server/services/public-site-service';
+import { getCachedNewsPosts } from '@/server/cache/public-content';
 import { formatDateTr } from '@/lib/format';
 import { SiteFooter } from '../site-footer';
 
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function NewsListPage() {
-  const posts = await listPublishedNewsPosts(50);
+  const posts = await getCachedNewsPosts(50);
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-ink">

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { listPublicLeadershipProfiles } from '@/server/services/public-site-service';
+import { getCachedLeadership } from '@/server/cache/public-content';
 import { EmptyState } from '@/components/ui/card';
 import { SiteHeader } from '../site-header';
 
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function LeadershipPage() {
-  const leadership = await listPublicLeadershipProfiles();
+  const leadership = await getCachedLeadership();
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-ink">
