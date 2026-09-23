@@ -292,3 +292,53 @@ function countByCategory(categories: string[]): Record<string, number> {
   for (const category of categories) counts[category] = (counts[category] ?? 0) + 1;
   return counts;
 }
+
+// ---------------------------------------------------------------------------
+// Ders modu — "şu anda ters giden ne var"
+// ---------------------------------------------------------------------------
+
+/**
+ * What is going wrong right now, while it can still be fixed.
+ *
+ * Every other insight looks back over a week; this one looks at the hour in
+ * progress, so it is asked for one thing only: who needs someone to walk
+ * over there. The facts it gets are deliberately thin — a chapter without
+ * its head, a group whose mentor is away, attendance nobody has taken — and
+ * the instruction says to stay quiet when none of that is true, because an
+ * assistant that raises something every week teaches people to ignore it.
+ */
+export async function getClassWatchInsight(
+  scope: AccessScope,
+  facts: {
+    weekNumber: number;
+    chapters: {
+      chapter: string;
+      head: string | null;
+      headAbsent: boolean;
+      roomsSplit: boolean;
+      groups: number;
+      mentorsAway: number;
+      attendanceMissing: number;
+      hasLink: boolean;
+    }[];
+  },
+  actor: Actor,
+  options: { forceRegenerate?: boolean; provider?: AiProvider } = {},
+): Promise<InsightOutcome> {
+  assertPermission(isExecutive(scope.role));
+
+  return getOrGenerateInsight({
+    insightType: 'class_watch',
+    scopeType: 'organization',
+    scopeId: null,
+    programId: null,
+    // Keyed to the minute so a refresh during the hour re-reads the room.
+    periodKey: `${isoWeekKey(new Date())}-w${facts.weekNumber}-${Math.floor(Date.now() / (5 * 60 * 1000))}`,
+    facts,
+    instruction:
+      'Ders şu anda devam ediyor. Sadece ŞU AN müdahale gerektiren durumları söyle: odaları açılmamış chapter, sorumlusu olmayan chapter, mentörü gelmeyen grup, bağlantısı girilmemiş chapter. Her biri için nereye gidilmesi gerektiğini tek cümleyle yaz. Her şey yolundaysa bunu açıkça söyle ve öneri uydurma. Kısa tut.',
+    actor,
+    forceRegenerate: options.forceRegenerate,
+    provider: options.provider,
+  });
+}

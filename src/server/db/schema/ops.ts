@@ -323,3 +323,45 @@ export const groupIssues = pgTable(
     index('group_issues_group_idx').on(table.groupId),
   ],
 );
+
+/**
+ * One row per chapter per teaching week: what its head did while the
+ * session was running.
+ *
+ * The head opens the chapter's meeting and splits the groups into rooms,
+ * and every mentor in that chapter is waiting on it — so the moment it
+ * happens is worth keeping, and so is the week it did not. `headAbsentAt`
+ * is the head saying in advance that they cannot make it, which is a
+ * different fact from simply never having split the rooms, and the two are
+ * read differently: one is a plan, the other is a gap.
+ */
+export const chapterSessionRuns = pgTable(
+  'chapter_session_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    chapterId: uuid('chapter_id')
+      .notNull()
+      .references(() => chapters.id, { onDelete: 'cascade' }),
+    academicYearId: uuid('academic_year_id')
+      .notNull()
+      .references(() => academicYears.id, { onDelete: 'cascade' }),
+    /** Matches `weekly_sessions.week_number` for the same year. */
+    weekNumber: integer('week_number').notNull(),
+
+    roomsSplitAt: timestamp('rooms_split_at', { withTimezone: true }),
+    roomsSplitById: uuid('rooms_split_by_id').references(() => users.id, { onDelete: 'set null' }),
+
+    headAbsentAt: timestamp('head_absent_at', { withTimezone: true }),
+    headAbsentNote: text('head_absent_note'),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('chapter_session_runs_unique').on(
+      table.chapterId,
+      table.academicYearId,
+      table.weekNumber,
+    ),
+  ],
+);

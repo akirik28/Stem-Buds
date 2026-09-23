@@ -131,6 +131,9 @@ export type UpdateNarrativeInput = {
   problems?: string | null;
   nextWeekGoal?: string | null;
   projectHealth?: 'on_track' | 'attention' | 'delayed' | null;
+  /** How the group took part — the one question class mode asks about them. */
+  participation?: 'most_active' | 'some_active' | 'low' | null;
+  projectStage?: 'idea' | 'research' | 'plan' | 'build' | 'results' | 'presentation' | null;
   actor: Actor;
 };
 
@@ -145,6 +148,8 @@ export async function updateWorkLogNarrative(input: UpdateNarrativeInput): Promi
   if (input.problems !== undefined) patch.problems = input.problems?.trim() || null;
   if (input.nextWeekGoal !== undefined) patch.nextWeekGoal = input.nextWeekGoal?.trim() || null;
   if (input.projectHealth !== undefined) patch.projectHealth = input.projectHealth;
+  if (input.participation !== undefined) patch.participation = input.participation;
+  if (input.projectStage !== undefined) patch.projectStage = input.projectStage;
   patch.draftAuthorId = input.actor.id;
   patch.draftSubmittedAt = new Date();
 

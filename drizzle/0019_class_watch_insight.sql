@@ -1,0 +1,1 @@
+ALTER TYPE "public"."ai_insight_type" ADD VALUE 'class_watch';

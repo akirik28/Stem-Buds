@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getAuthContext } from '@/server/auth/context';
+import { getActiveSession } from '@/server/services/class-mode-service';
 import { roleLabels } from '@/lib/i18n/tr';
 import { initials, roleTheme } from '@/lib/role-theme';
 import { buildNavigation } from './navigation';
@@ -11,6 +12,11 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   const context = await getAuthContext();
   if (!context) redirect('/giris');
   if (context.user.mustChangePassword) redirect('/sifre-belirle');
+
+  // While a session is running there is one thing to do, so the panel hands
+  // over to the lesson guide entirely rather than competing with it. Class
+  // mode lives outside this layout, so this cannot loop.
+  if (await getActiveSession(context.scope)) redirect('/ders');
 
   const groups = buildNavigation(context.scope);
   const theme = roleTheme(context.user.role);

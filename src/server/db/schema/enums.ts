@@ -46,6 +46,32 @@ export const homeworkStatusEnum = pgEnum('homework_status', [
 /** Traffic-light health of a project as judged in a weekly session. */
 export const projectHealthEnum = pgEnum('project_health', ['on_track', 'attention', 'delayed']);
 
+/**
+ * How the group took part this week. Three options, because a mentor
+ * answering this every week will pick honestly from three and will start
+ * picking the middle one from five.
+ */
+/**
+ * Where a group's project has got to. Six steps across twelve sessions, so
+ * a fortnight each: coarse enough that a mentor picks one without thinking
+ * and fine enough that two groups at the same step really are in the same
+ * place. Recorded on the weekly log, which makes the history free.
+ */
+export const projectStageEnum = pgEnum('project_stage', [
+  'idea',
+  'research',
+  'plan',
+  'build',
+  'results',
+  'presentation',
+]);
+
+export const participationLevelEnum = pgEnum('participation_level', [
+  'most_active',
+  'some_active',
+  'low',
+]);
+
 /** Lifecycle of a generated weekly session. */
 export const weeklySessionStateEnum = pgEnum('weekly_session_state', [
   'scheduled',
@@ -111,6 +137,8 @@ export const aiInsightTypeEnum = pgEnum('ai_insight_type', [
   'mentor_alert_explainer',
   /** "Grup Özetleri" — ADVISOR_TEACHER, one entry per authorized Group. */
   'advisor_group_summary',
+  /** Ders modu — what is going wrong right now, for whoever is roaming. */
+  'class_watch',
 ]);
 
 /** What kind of scope an `ai_insights` cache row is keyed to. */

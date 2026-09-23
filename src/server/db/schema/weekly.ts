@@ -16,6 +16,9 @@ import { academicYears, groupMemberships, groups } from './org';
 import {
   attendanceStatusEnum,
   homeworkStatusEnum,
+  participationLevelEnum,
+  projectStageEnum,
+
   projectHealthEnum,
   weeklySessionStateEnum,
 } from './enums';
@@ -87,9 +90,24 @@ export const weeklyWorkLogs = pgTable(
     /** "Proje durumu" — required before completion. */
     projectHealth: projectHealthEnum('project_health'),
 
+    /** The one question asked about the group itself, rather than the work. */
+    participation: participationLevelEnum('participation'),
+
+    /** Where the project stood at the end of this week. */
+    projectStage: projectStageEnum('project_stage'),
+
     /** Team Leader draft bookkeeping. */
     draftAuthorId: uuid('draft_author_id').references(() => users.id, { onDelete: 'set null' }),
     draftSubmittedAt: timestamp('draft_submitted_at', { withTimezone: true }),
+
+    /**
+     * The mentor saying they cannot run this week, ideally before it starts.
+     * Their chapter head is the one who needs to know, so this is what the
+     * head's list reads — not the absence of a record, which could just mean
+     * the week has not happened yet.
+     */
+    mentorAbsentAt: timestamp('mentor_absent_at', { withTimezone: true }),
+    mentorAbsentNote: text('mentor_absent_note'),
 
     attendanceFinalizedAt: timestamp('attendance_finalized_at', { withTimezone: true }),
     attendanceFinalizedById: uuid('attendance_finalized_by_id').references(() => users.id, {

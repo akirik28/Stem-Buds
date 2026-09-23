@@ -62,6 +62,14 @@ export const chapters = pgTable(
     city: varchar('city', { length: 80 }),
     isActive: boolean('is_active').notNull().default(true),
 
+    /**
+     * The chapter's standing video link, set once a year by its head. Every
+     * weekly session in this chapter meets here and the head splits the
+     * groups into rooms, so there is one link to remember rather than one
+     * per group per week.
+     */
+    meetingUrl: varchar('meeting_url', { length: 500 }),
+
     /** Public website visibility — only verified chapters may be published. */
     isPublic: boolean('is_public').notNull().default(false),
     publicDescription: text('public_description'),

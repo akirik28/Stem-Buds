@@ -317,6 +317,8 @@
   /* Card 18 / row 13 / control 11 / pill — see handoff "Boşluk, köşe, gölge". */
   --radius-card: 18px;
   --radius-row: 13px;
+  --color-class-accent: var(--class-accent);
+
   --radius-control: 11px;
 
   --shadow-aura: var(--shadow);
@@ -608,4 +610,70 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+
+/* --- Ders modu -------------------------------------------------------- */
+/* The session hour gets its own ground: pure white, one saturated accent,
+   nothing else competing. It inherits .theme-light and then overrides the
+   parchment tones, because a lesson guide read on a phone in a noisy room
+   wants maximum contrast, not warmth. */
+.class-mode {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f4f7fb;
+  --surface-3: #e8eef7;
+  --line: #d3dceb;
+  --line-soft: #e6ecf5;
+  --ink: #0f2438;
+  --ink-2: #33506e;
+  --ink-3: #64798f;
+  --class-accent: #1266d6;
+
+  /* `@theme` emits `--color-*: var(--…)` on :root, so those resolve against
+     :root's values and stay resolved for every descendant. Overriding the
+     semantic variables on a nested element is therefore not enough — the
+     utilities read `--color-*`, which must be restated here too. */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-class-accent: var(--class-accent);
+
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Sits above the thumb, where the next step actually gets pressed. */
+.class-mode-bar {
+  position: sticky;
+  bottom: 0;
+  background: #ffffff;
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* One student, one row, three targets — sized for a finger. */
+.class-roster {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.class-roster-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
 }

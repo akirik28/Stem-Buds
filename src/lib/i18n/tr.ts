@@ -351,3 +351,24 @@ export const meetingRequestStatusLabels = {
   pending: 'Onay bekliyor',
   declined: 'Reddedildi',
 } as const;
+
+/** Where a project has got to. Ordered: the list doubles as the arc. */
+export const projectStageLabels = {
+  idea: 'Fikir',
+  research: 'Araştırma',
+  plan: 'Plan',
+  build: 'Yapım',
+  results: 'Sonuçlar',
+  presentation: 'Sunum',
+} as const;
+
+export type ProjectStageKey = keyof typeof projectStageLabels;
+
+/** The one question class mode asks about the group rather than the work. */
+export const participationLabels = {
+  most_active: 'Çoğu aktifti',
+  some_active: 'Birkaçı aktifti',
+  low: 'Katılım düşüktü',
+} as const;
+
+export type ParticipationKey = keyof typeof participationLabels;

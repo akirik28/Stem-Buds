@@ -50,6 +50,7 @@ function getDefaultProvider(): AiProvider {
 }
 
 export type AiInsightType =
+  | 'class_watch'
   | 'weekly_summary'
   | 'chapter_group_status'
   | 'data_question'

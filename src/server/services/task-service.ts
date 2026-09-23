@@ -2,6 +2,7 @@ import { isMentor } from '@/server/authz/policy';
 import type { AccessScope } from '@/server/authz/policy';
 import { listAlertsForMentor, listAlertsForViewer, type ManagementAlert } from './alert-query';
 import { daysAtLevel, listIssuesForViewer, type GroupIssue } from './issue-service';
+import { listAbsencesForViewer, type AbsenceNotice } from './class-mode-service';
 
 /**
  * "Yapılacaklar": the open alerts, restated as a short ordered list of things
@@ -21,7 +22,7 @@ export type Task = {
   id: string;
   /** A reported problem behaves differently from a detected one: it can be
       handed upward or closed, so the list needs to tell them apart. */
-  kind: 'alert' | 'issue';
+  kind: 'alert' | 'issue' | 'absence';
   /** What to do, in the imperative — never a restatement of the symptom. */
   title: string;
   /** The evidence behind it, straight from the alert. */
@@ -92,16 +93,37 @@ function issueToTask(issue: GroupIssue): Task {
  * Mentor from their own groups, management from the feed. Authorization is
  * the underlying query's, never this function's.
  */
+/**
+ * Somebody saying in advance that they cannot come is the most time-critical
+ * thing on the list: the session is today, and a group without its mentor
+ * needs cover now rather than a note about it next week.
+ */
+function absenceToTask(notice: AbsenceNotice): Task {
+  return {
+    id: notice.id,
+    kind: 'absence',
+    title: notice.title,
+    detail: notice.detail,
+    severity: 'red',
+    href: notice.href,
+  };
+}
+
 export async function listTasksForViewer(scope: AccessScope): Promise<Task[]> {
-  const [alerts, issues] = await Promise.all([
+  const [alerts, issues, absences] = await Promise.all([
     isMentor(scope.role) ? listAlertsForMentor(scope) : listAlertsForViewer(scope),
     listIssuesForViewer(scope),
+    listAbsencesForViewer(scope),
   ]);
 
-  return [...issues.map(issueToTask), ...alerts.map(toTask)].sort((a, b) => {
-    const bySeverity = (SEVERITY_ORDER[a.severity] ?? 3) - (SEVERITY_ORDER[b.severity] ?? 3);
-    if (bySeverity !== 0) return bySeverity;
-    // A person waiting beats a threshold crossing.
-    return (a.kind === 'issue' ? 0 : 1) - (b.kind === 'issue' ? 0 : 1);
-  });
+  const rank = (task: Task) => (task.kind === 'absence' ? 0 : task.kind === 'issue' ? 1 : 2);
+
+  return [...absences.map(absenceToTask), ...issues.map(issueToTask), ...alerts.map(toTask)].sort(
+    (a, b) => {
+      const bySeverity = (SEVERITY_ORDER[a.severity] ?? 3) - (SEVERITY_ORDER[b.severity] ?? 3);
+      if (bySeverity !== 0) return bySeverity;
+      // A person waiting beats a threshold crossing; someone away beats both.
+      return rank(a) - rank(b);
+    },
+  );
 }
