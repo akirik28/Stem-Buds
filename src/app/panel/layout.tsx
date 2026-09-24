@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getAuthContext } from '@/server/auth/context';
 import { getActiveSession } from '@/server/services/class-mode-service';
+import { getPendingFeedbackCycleForStudent } from '@/server/services/feedback-service';
+import { isStudent } from '@/server/authz/policy';
 import { roleLabels } from '@/lib/i18n/tr';
 import { initials, roleTheme } from '@/lib/role-theme';
 import { buildNavigation } from './navigation';
@@ -18,7 +20,13 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   // mode lives outside this layout, so this cannot loop.
   if (await getActiveSession(context.scope)) redirect('/ders');
 
-  const groups = buildNavigation(context.scope);
+  // The survey link is the one item that comes and goes, so the menu has to
+  // ask whether it is open rather than assume.
+  const feedbackOpen = isStudent(context.user.role)
+    ? (await getPendingFeedbackCycleForStudent(context.scope)) !== null
+    : false;
+
+  const groups = buildNavigation(context.scope, { feedbackOpen });
   const theme = roleTheme(context.user.role);
   const user: SidebarUser = {
     fullName: context.user.fullName,

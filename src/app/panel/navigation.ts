@@ -59,41 +59,82 @@ export function buildNavigation(scope: AccessScope, badges: NavBadges = {}): Nav
     ];
   }
 
+  // A student's whole relationship with the platform is one question —
+  // "what is my group doing, and what do I owe?" — so it is one page, plus
+  // the group's own chat. The survey only appears in the weeks it is open;
+  // a permanent link to a form that is usually closed is a dead end.
+  if (isStudent(scope.role)) {
+    const items: NavItem[] = [
+      { href: '/panel', label: 'Panelim' },
+      { href: '/panel/mesajlar', label: 'Mesajlar', badge: badges.messages },
+    ];
+    if (badges.feedbackOpen) {
+      items.push({ href: '/panel/geri-bildirim', label: 'Geri Bildirim' });
+    }
+    return [{ title: 'Günlük akış', items: items }];
+  }
+
+  // A mentor runs one group, and during the session hour class mode runs
+  // them. What is left between sessions is small enough to name: the list
+  // of what to do, the group itself, and the people to talk to.
+  if (isMentor(scope.role)) {
+    return [
+      {
+        title: 'Günlük akış',
+        items: [
+          { href: '/panel', label: 'Panelim' },
+          { href: '/panel/mesajlar', label: 'Mesajlar', badge: badges.messages },
+          { href: '/panel/bildirimler', label: 'Bildirimler', badge: badges.notifications },
+        ],
+      },
+      {
+        title: 'Program',
+        items: [
+          { href: '/panel/gruplar', label: 'Grubum' },
+          { href: '/panel/toplantilar', label: 'Mentor Toplantıları' },
+        ],
+      },
+    ];
+  }
+
+  // A chapter head reads the same alert pool as everyone else; it reaches
+  // them once, on Panelim, rather than three times under three names.
+  if (isChapterHead(scope.role)) {
+    return [
+      {
+        title: 'Günlük akış',
+        items: [
+          { href: '/panel', label: 'Panelim' },
+          { href: '/panel/mesajlar', label: 'Mesajlar', badge: badges.messages },
+          { href: '/panel/bildirimler', label: 'Bildirimler', badge: badges.notifications },
+        ],
+      },
+      {
+        title: 'Program',
+        items: [
+          { href: '/panel/gruplar', label: 'Gruplar' },
+          { href: '/panel/toplantilar', label: 'Mentor Toplantıları' },
+        ],
+      },
+    ];
+  }
+
   const daily: NavItem[] = [
     { href: '/panel', label: 'Panelim' },
     { href: '/panel/yapilacaklar', label: 'Yapılacaklar' },
     { href: '/panel/bildirimler', label: 'Bildirimler', badge: badges.notifications },
   ];
 
-  if (isMentor(scope.role)) {
-    daily.push({
-      href: '/panel/dikkat-gerektirenler',
-      label: 'Dikkat Gerektirenler',
-      badge: badges.attention,
-    });
-  }
-
-  if (isStudent(scope.role) || isMentor(scope.role)) {
-    daily.push({ href: '/panel/haftalik-calismalar', label: 'Haftalık Çalışmalar' });
-  }
-
-  if (isStudent(scope.role)) {
-    daily.push({ href: '/panel/geri-bildirim', label: 'Geri Bildirim' });
-  }
-
-  if (!isStudent(scope.role) && !isAdvisorTeacher(scope.role)) {
+  if (!isAdvisorTeacher(scope.role)) {
     daily.push({ href: '/panel/mesajlar', label: 'Mesajlar', badge: badges.messages });
   }
 
-  const program: NavItem[] = [];
+  const program: NavItem[] = [
+    { href: '/panel/gruplar', label: 'Gruplar' },
+    { href: '/panel/projeler', label: 'Projeler' },
+  ];
 
-  if (!isStudent(scope.role)) {
-    program.push({ href: '/panel/gruplar', label: 'Gruplar' });
-  }
-
-  program.push({ href: '/panel/projeler', label: 'Projeler' });
-
-  if (isChapterHead(scope.role) || isMentor(scope.role) || isExecutive(scope.role)) {
+  if (isExecutive(scope.role)) {
     program.push({ href: '/panel/toplantilar', label: 'Mentor Toplantıları' });
   }
 
@@ -139,6 +180,8 @@ export type NavBadges = {
   messages?: number;
   alerts?: number;
   attention?: number;
+  /** A student sees the survey link only while one is actually waiting. */
+  feedbackOpen?: boolean;
 };
 
 /** Flattens the groups — used by the narrow layout's bottom tab bar. */

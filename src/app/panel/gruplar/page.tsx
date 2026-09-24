@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireAuthContext } from '@/server/auth/context';
-import { canViewChapter, isExecutive } from '@/server/authz/policy';
+import { canViewChapter, isExecutive, isMentor } from '@/server/authz/policy';
+import { getGroupById } from '@/server/services/group-service';
+import { redirect } from 'next/navigation';
 import { listChapters } from '@/server/services/chapter-service';
 import { listPrograms } from '@/server/services/program-service';
 import { Card, CardTitle, EmptyState } from '@/components/ui/card';
@@ -21,6 +23,14 @@ export default async function ChaptersPage({
 }) {
   const context = await requireAuthContext();
   const { program: programFilter } = await searchParams;
+
+  // A mentor runs one group. Showing them a list of chapters to click
+  // through, to reach the single entry that was always the destination, is
+  // two screens of ceremony — so the menu says "Grubum" and means it.
+  if (isMentor(context.scope.role) && context.scope.mentorGroupIds.length === 1) {
+    const only = await getGroupById(context.scope.mentorGroupIds[0]!);
+    if (only) redirect(`/panel/gruplar/${only.chapterId}/${only.id}`);
+  }
 
   const [allChapters, programs] = await Promise.all([
     listChapters(programFilter ? { programId: programFilter } : {}),

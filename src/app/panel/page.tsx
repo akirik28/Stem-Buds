@@ -132,14 +132,6 @@ async function StudentSection(scope: AccessScope, academicYearId: string | null)
               <Card key={group.id}>
                 <CardTitle>{group.name}</CardTitle>
                 <ProjectSnapshot project={project} />
-                <div className="mt-3 flex flex-wrap gap-3 text-sm">
-                  <Link href="/panel/haftalik-calismalar" className="text-ink-2 hover:underline">
-                    Haftalık Çalışmalar →
-                  </Link>
-                  <Link href="/panel/projeler" className="text-ink-2 hover:underline">
-                    Proje →
-                  </Link>
-                </div>
               </Card>
             );
           }),
